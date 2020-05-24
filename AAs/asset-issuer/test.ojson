@@ -1,0 +1,65 @@
+[
+	"autonomous agent",
+	{	
+		"init": "{
+			$registery_address = "KLY277ALD5YKA76TT4D26LXX6QXQFG3K";
+			if (trigger.data.asset_index AND trigger.address != $registery_address)
+				bounce("only registry can increment asset");
+			if (trigger.data.define_assets)
+				$asset_symbol= "hometeam";
+			else if (trigger.data.asset_index == 1)
+				$asset_symbol= "awayteam";
+			else if (trigger.data.asset_index == 2)
+				$asset_symbol= "draw";
+			else if (trigger.data.asset_index == 3)
+				$asset_symbol= "canceled";
+			if (!trigger.data.asset_index)
+				$next_asset_index = 1;
+			else if (trigger.data.asset_index < 3)
+				$next_asset_index = trigger.data.asset_index + 1;
+			else
+				$next_asset_index = '';
+		}",
+		"messages": 
+		[
+			{
+				"app": "asset",
+				"payload": {
+						"is_private": false,
+						"is_transferrable": true,
+						"auto_destroy": false,
+						"fixed_denominations": false,
+						"issued_by_definer_only": true,
+						"cosigned_by_definer": false,
+						"spender_attested": false
+				}
+			},
+			{
+
+				"app": "payment",
+				"payload": {
+					"asset": "base",
+					"outputs": [
+							{
+								"address": "{$registery_address}",
+								"amount": "{length($asset_symbol)*2 + 1000}"
+							}
+						]
+					}
+				},
+				{ 
+					"app": "data",
+					"payload": {
+						"asset_index": "{$next_asset_index}",
+						"asset_symbol":"{$asset_symbol}"
+					}
+				},
+				{
+					"app": "state",
+					"state": "{
+						var[$asset_symbol] = response_unit;
+					}"
+				}
+			]
+		}
+]

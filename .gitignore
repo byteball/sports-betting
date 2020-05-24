@@ -34,3 +34,6 @@ server/yarn-error.log*
 server/.idea
 server/.vscode
 
+AAs/testdata
+AAs/package-lock.json
+AAs/node_modules

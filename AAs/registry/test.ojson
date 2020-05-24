@@ -1,0 +1,36 @@
+["autonomous agent", {
+	messages: [
+		{
+			"if": `{exists(trigger.data.asset_index)}`,
+			"app": "payment",
+			"payload": {
+				"asset": "base",
+				"outputs": [
+					{
+						"address": "{trigger.address}",
+						"amount": 1
+					}
+				]
+			}
+		},
+		{
+			"if": `{exists(trigger.data.asset_index)}`,
+			"app": "data",
+			"payload": {
+			"define": "{trigger.data.asset_index + 1}"
+			}
+		},
+		{
+			init: `{
+				$origin = definition[trigger.address][1].base_aa otherwise trigger.address;
+				$asset = trigger.unit;
+				$asset_symbol = trigger.data.asset_symbol;
+			}`,
+			app: "state",
+			state: `{
+				var['s2a_' || $asset_symbol || '|' || $origin] = $asset;
+				var['a2s_' || $asset || '|' || $origin] = $asset_symbol;
+			}`
+		}
+	]
+}]
