@@ -1,0 +1,19 @@
+["autonomous agent", {
+	"messages": [
+		{
+			"app": "definition",
+			"payload": {
+				"autonomous agent",
+				{
+						"base_aa": "GIZHW5NPFTXAHAWKI66XKHJ3S4FIDG2G",
+						"params": {
+								"oracle": "GEAQZKGZQI57MROSIVOQFNAGCEUIPURI",
+								"championship":"BL1",
+								"home_team":"BYM",
+								"away_team":"LMA",
+								"expiry_date": "25-05-2050"
+						}
+				}
+			}
+		}
+}]

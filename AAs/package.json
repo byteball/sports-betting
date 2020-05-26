@@ -7,7 +7,7 @@
     "test": "mocha --require test/bootload.js"
   },
   "dependencies": {
-    "aa-testkit": "git+https://github.com/valyakin/aa-testkit#aa"
+    "aa-testkit": "git+https://github.com/valyakin/aa-testkit"
   },
   "devDependencies": {
     "chai": "^4.2.0",
