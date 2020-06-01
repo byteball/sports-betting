@@ -2,7 +2,8 @@
 	"init" : "{
 		$origin = definition[trigger.address][1].base_aa otherwise trigger.address;
 		$oracle = trigger.data.oracle;
-		$asset_symbol = trigger.data.asset_symbol;
+		$asset_symbol = to_upper(trigger.data.asset_symbol);
+		$decimals = trigger.data.decimals OTHERWISE 9;
 		if (!$oracle)
 			bounce("no oracle specified");
 		if (!is_valid_address($oracle))
@@ -16,8 +17,10 @@
 				bounce("asset symbol cannot be longer than 50 chars");
 			if (var['s2a_' || $asset_symbol || '|' || $origin || '|' || $oracle])
 				bounce("This symbol is already registered");
-			if (trigger.output[[asset=base]] < length($asset_symbol)*2 + 269)
+			if (trigger.output[[asset=base]] < length($asset_symbol)*2 + 348)
 				bounce("Payment received doesn't cover storage fees");
+			if (!is_integer($decimals))
+				bounce("Decimals must be integer");
 		}
 
 	}",
@@ -51,6 +54,7 @@
 			"state": `{
 				var['s2a_' || $asset_symbol || '|' || $origin || '|' || $oracle] = $asset;
 				var['a2s_' || $asset || '|' || $origin || '|' || $oracle] = $asset_symbol;
+				var['decimals_'|| $asset || '|' || $origin || '|' || $oracle] = $decimals;
 			}`
 		}
 	]

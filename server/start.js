@@ -19,10 +19,9 @@ var assocFixturesByChampionship = {};
 var assocFixturesByTeam = {};
 var assocFixturesByCategorie = {};
 var assocChampionshipsByCategorie = {};
-var assocFixturesByFeedname = {};
+var assocFixturesByFeedName = {};
 
 
-aa_handler.setAssocFixturesByFeedname(assocFixturesByFeedname);
 
 const app = express()
 
@@ -39,22 +38,32 @@ app.use(expressLogging(logger));
 
 
 app.get('/api/championships_by_cat/:cat', async function(request, response){
-	await waitForCalendar();
-	const cat = request.params.cat;
+	await waitForCalendarReady();
+	const cat = request.params.cat.charAt(0).toUpperCase() + request.params.cat.slice(1);
 	return response.send(assocChampionshipsByCategorie[cat] || []);
 });
 
+app.get('/api/fixtures_by_cat/:cat', async function(request, response){
+	await waitForCalendarReady();
+	const cat = request.params.cat.charAt(0).toUpperCase() + request.params.cat.slice(1);
+	return response.send(assocFixturesByCategorie[cat] || []);
+});
+
 app.get('/api/fixtures_by_championship/:championship', async function(request, response){
-	await waitForCalendar();
-	const championship = request.params.championship;
+	await waitForCalendarReady();
+	const championship = request.params.championship.toUpperCase() ;
 	return response.send(assocFixturesByChampionship[championship] || []);
 });
 
 app.get('/api/fixtures_by_team/:team', async function(request, response){
-	await waitForCalendar();
+	await waitForCalendarReady();
 	const team = request.params.team;
 	return response.send(assocFixturesByTeam[team] || []);
 });
+
+app.get('/api/categories', async function(request, response){
+	return response.send(assocChampionshipsByCategorie)
+})
 
 app.listen(conf.api_port);
 
@@ -64,13 +73,13 @@ async function start(){
 	await requestCalendar();
 }
 
-function waitForCalendar(){
-	return Promise(function(resolve){
+function waitForCalendarReady(){
+	return new Promise((resolve)=>{
 		if (bCalendarFetched)
 			return resolve();
 		else
-			setTimeout(function(){
-				waitForCalendar.then(resolve);
+			setTimeout(()=>{
+				waitForCalendarReady().then(resolve);
 			}, 500);
 
 	})
@@ -111,24 +120,35 @@ async function requestCalendar(){
 }
 
 function fetchCalendar(receivedCalendar){
-	bCalendarFetched =false;
+	bCalendarFetched = false;
+
+	assocFixturesByChampionship = {};
+	assocFixturesByTeam = {};
+	assocFixturesByCategorie = {};
+	assocChampionshipsByCategorie = {};
+	assocFixturesByFeedName = {};
+	aa_handler.setAssocFixturesByFeedname(assocFixturesByFeedName);
+
 	for (var cat in receivedCalendar){
 		if (cat == 'creation_date')
 			continue;
+			console.log(cat);
 
 		if (!assocChampionshipsByCategorie[cat])
 			assocChampionshipsByCategorie[cat] = [];
 		for (var championship in receivedCalendar[cat]){
-			assocChampionshipsByCategorie.push(championship);
+			assocChampionshipsByCategorie[cat].push({
+				championship,
+				nb_fixtures: Object.keys(receivedCalendar[cat][championship].fixtures).length
+			});
 			for (var feedname in receivedCalendar[cat][championship].fixtures){
-				if (assocFixturesByFeedname[feedname])
-					Object.assign(assocFixturesByFeedname[feedname], receivedCalendar[cat][championship].fixtures[feedname])
-				else {
+				console.log(feedname);
+				assocFixturesByFeedName[feedname] = receivedCalendar[cat][championship].fixtures[feedname];
 				
-					assocFixturesByFeedname[feedname] = receivedCalendar[cat][championship].fixtures[feedname];
-				}
-				var fixture = assocFixturesByFeedname[feedname] ;
-
+				var fixture = assocFixturesByFeedName[feedname];
+				fixture.championship = championship;
+				console.log('assocFixturesByFeedName start ' + JSON.stringify(assocFixturesByFeedName));
+				aa_handler.getTokenInfo(feedname);
 
 				if (!assocFixturesByCategorie[cat])
 					assocFixturesByCategorie[cat] = [];
