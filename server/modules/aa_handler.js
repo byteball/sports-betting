@@ -1,13 +1,11 @@
 const conf = require('ocore/conf.js');
 const lightWallet = require('ocore/light_wallet.js');
-const myWitnesses = require('ocore/my_witnesses.js');
 const network = require('ocore/network.js');
 const wallet_general = require('ocore/wallet_general.js');
 const eventBus = require('ocore/event_bus.js');
 const db = require('ocore/db.js');
 const storage = require('ocore/storage.js');
 const objectHash = require('ocore/object_hash.js');
-
 const datafeeds = require('ocore/data_feeds.js');
 
 var assocFixturesByFeedName = {};
@@ -17,19 +15,9 @@ function setAssocFixturesByFeedname(_assocFixturesByFeedName){
 	assocFixturesByFeedName = _assocFixturesByFeedName;
 }
 
-myWitnesses.readMyWitnesses(function (arrWitnesses) {
-	if (arrWitnesses.length > 0)
-		return start();
-	myWitnesses.insertWitnesses(conf.initial_witnesses, start);
-}, 'ignore');
 
-eventBus.on('connected', function(){
+eventBus.on('headless_wallet_ready', function(){
 	network.addLightWatchedAa(conf.issuer_base_aa);
-});
-
-function start(){
-	lightWallet.setLightVendorHost(conf.hub);
-
 	wallet_general.addWatchedAddress(conf.oracle_address, function(error){
 		if (error)
 			console.log(error)
@@ -37,12 +25,11 @@ function start(){
 			console.log(conf.oracle_address + " added as watched address")
 
 		refresh();
-
 		setInterval(refresh, 60 * 1000);
 		eventBus.on('my_transactions_became_stable', onTransactionsBecameStable);
 
 	});
-}
+});
 
 function refresh(){
 	lightWallet.refreshLightClientHistory();
@@ -179,7 +166,6 @@ eventBus.on("message_for_light", function(ws, subject, body){
 	}
 
 	if (subject == 'light/aa_response' && assocFeedNameByAaAddress[body.aa_address]){
-		console.log(body);
 		network.requestFromLightVendor('light/get_aa_state_vars', {
 			address: body.aa_address,
 			var_prefix_from: "0",
