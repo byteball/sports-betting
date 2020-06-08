@@ -1,0 +1,211 @@
+[
+	"autonomous agent",
+	{	
+		"init": `{
+			$timeout = 5;
+			$registry_address = "XVIFA4GZO7IHAUBFU47GSWMBZYOY56ZD";
+			if (typeof(params.championship) != 'string')
+				bounce("championship parameter must be a string");
+			if (typeof(params.home_team) != 'string')
+				bounce("home_team parameter must be a string");
+			if (typeof(params.away_team) != 'string')
+				bounce("away_team parameter must be a string");
+			if (contains(params.championship, '_') OR contains(params.championship, '|'))
+				bounce("championship parameter cannot contain '|' or '_'");
+			if (contains(params.home_team, '_') OR contains(params.home_team, '|'))
+				bounce("home_team parameter cannot contain '|' or '_'");
+			if (contains(params.away_team, '_') OR contains(params.away_team, '|'))
+				bounce("away_team parameter cannot contain '|' or '_'");
+			if (!parse_date(params.expiry_date))
+				bounce("expiry_date parameter is not a valid date");
+			if ($timeout < 1)
+				bounce("timeout must be at least 1 day");
+			if (!is_valid_address(params.oracle))
+				bounce("oracle parameter is not a valid address");
+			$params_values_total_length = length(params.championship) + length(params.home_team) + length(params.away_team)
+			+ length(params.expiry_date) + length(params.oracle);
+			if (length(json_stringify(params)) != $params_values_total_length + 78)
+			 	bounce("foreign parameter(s) in AA definition"); // ensure there can be only one address for this set of parameters
+			$base_amount_received = trigger.output[[asset=base]];
+		}`,
+		"messages": {
+			"cases": 
+			[
+				{
+					"if": `{
+						$base_amount_received > 10000 OR trigger.address == $registry_address
+					}`,
+					"init": `{
+						if (trigger.data.asset_step AND trigger.address != $registry_address)
+							bounce("only registry can increment asset step");
+						if (var["canceled"] AND trigger.address != $registry_address){ // the assets are already defined, we just have to issue them
+							$recipient_address = trigger.address;
+							$asset_amount = $base_amount_received - 10000;
+						} else {
+							$symbol_left_part = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.expiry_date;
+							if (trigger.address != $registry_address){ // if triggered by user we are at first step of asset definition
+								$asset_type = "hometeam";
+								$asset_symbol = $symbol_left_part || '-' || params.home_team;
+								$next_asset_step = 1;
+							} else if (trigger.data.asset_step == 1){
+								$asset_type = "awayteam";
+								$asset_symbol = $symbol_left_part || '-' || params.away_team;
+							} else if (trigger.data.asset_step == 2){
+								$asset_type = "draw";
+								$asset_symbol = $symbol_left_part || '-DRAW';
+							} else if (trigger.data.asset_step == 3){
+								$asset_type = "canceled";
+								$asset_symbol = $symbol_left_part || '-CANCELED';
+							} else if (trigger.data.asset_step == 4){
+								$recipient_address = trigger.initial_address;
+								$asset_amount = var['amount_to_paid'];
+							}
+							if (trigger.data.asset_step AND trigger.data.asset_step < 4)
+								$next_asset_step = trigger.data.asset_step + 1; // asset_step is incremented at every ping-pong with registery until all assets are defined
+
+							if (length($asset_symbol) > 50)
+								bounce("resulting symbol length cannot be superior to 50");
+						}
+						}`,
+						"messages": [
+							{
+							"if" : "{$recipient_address}",
+							"app": "payment",
+							"payload": {
+								"asset": "{var["hometeam"]}",
+								"outputs": [
+										{
+											"address": "{$recipient_address}",
+											"amount": "{$asset_amount}",
+										}
+									]
+								}
+							},
+							{
+							"if" : "{$recipient_address}",
+							"app": "payment",
+							"payload": {
+								"asset": "{var["awayteam"]}",
+								"outputs": [
+										{
+											"address": "{$recipient_address}",
+											"amount": "{$asset_amount}",
+										}
+									]
+								}
+							},
+							{
+							"if" : "{$recipient_address}",
+							"app": "payment",
+							"payload": {
+								"asset": "{var["draw"]}",
+								"outputs": [
+										{
+											"address": "{$recipient_address}",
+											"amount": "{$asset_amount}",
+										}
+									]
+								}
+							},
+							{
+							"if" : "{$recipient_address}",
+							"app": "payment",
+							"payload": {
+								"asset": "{var["canceled"]}",
+								"outputs": [
+										{
+											"address": "{$recipient_address}",
+											"amount": "{$asset_amount}",
+										}
+									]
+								}
+							},
+						{	"if" : "{!$recipient_address}",
+							"app": "asset",
+							"payload": {
+									"is_private": false,
+									"is_transferrable": true,
+									"auto_destroy": false,
+									"fixed_denominations": false,
+									"issued_by_definer_only": true,
+									"cosigned_by_definer": false,
+									"spender_attested": false
+							}
+						},
+						{
+							"if" : "{!$recipient_address}",
+							"app": "payment",
+							"payload": {
+								"asset": "base",
+								"outputs": [
+										{
+											"address": "{$registry_address}",
+											"amount": 1000
+										}
+									]
+								}
+							},
+							{ 
+								"if" : "{!$recipient_address}",
+								"app": "data",
+								"payload": {
+									"next_asset_step": "{$next_asset_step}",
+									"asset_symbol":"{$asset_symbol}",
+									"oracle":"{params.oracle}"
+								}
+							},
+							{
+								"if" : "{!$recipient_address}",
+								"app": "state",
+								"state": "{
+									var[$asset_type] = response_unit;
+									if ($next_asset_step == 1){
+										var['amount_to_paid'] = $base_amount_received - 10000;
+									}
+								}"
+							}
+						]
+				},
+				{
+					"if": "{trigger.output[[asset!=base]] > 1000 AND trigger.output[[asset!=base]].asset != 'ambiguous'}",
+					"init":"{
+						$asset = trigger.output[[asset!=base]].asset;
+						if ($asset != var['hometeam'] AND $asset != var['awayteam']
+							AND $asset != var['draw'] AND $asset != var['canceled'])
+							bounce("foreign asset");
+
+						$amount = trigger.output[[asset!=base]];
+						$feedname = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.expiry_date;
+						$datafeed_value = data_feed[[oracles=params.oracle, feed_name=$feedname, ifnone='_none']];
+						if ($asset == var['hometeam'] AND $datafeed_value != params.home_team)
+							bounce("home team didn't win");
+						if ($asset == var['awayteam'] AND $datafeed_value != params.away_team)
+							bounce("away team didn't win");
+						if ($asset == var['draw'] AND $datafeed_value != 'draw')
+							bounce("there wasn't a draw");
+						if ($asset == var['canceled'] AND $datafeed_value != 'canceled'){
+							$expired = timestamp > parse_date(params.expiry_date) + $timeout * 24 * 3600;
+							if ($datafeed_value != '_none')
+								bounce("there wasn't a cancelation or postponement");
+							if (!$expired)
+								bounce("timeout not reached yet");
+						}
+					}",
+					"messages": [
+						{
+							"app": "payment",
+							"payload": {
+									"asset": "base",
+									"outputs": [
+											{
+												"address": "{trigger.address}",
+												"amount": "{$amount - 1000}"
+											}
+									]
+							}
+						}
+					]
+			}]
+		}
+	}
+]

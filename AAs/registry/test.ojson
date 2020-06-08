@@ -1,0 +1,57 @@
+["autonomous agent", {
+	"init" : "{
+		$origin = definition[trigger.address][1].base_aa otherwise trigger.address;
+		$asset = trigger.unit;
+		$asset_symbol = trigger.data.asset_symbol;
+		$oracle = trigger.data.oracle;
+		if (!$oracle)
+			bounce("no oracle specified");
+		if (!is_valid_address($oracle))
+			bounce("oracle is not a valid address");
+		if (!$asset_symbol)
+			bounce("no asset symbol specified");
+		if(contains($asset_symbol,"|"))
+			bounce("asset symbol cannot contain '|'");
+		if (length($asset_symbol) > 50)
+			bounce("asset symbol cannot be longer than 50 chars");
+		if (var['s2a_' || $asset_symbol || '|' || $origin || '|' || $oracle])
+			bounce("This symbol is already registered");
+		if (trigger.output[[asset=base]] < length($asset_symbol)*2 + 269)
+			bounce("Payment received doesn't cover storage fees");
+	}",
+	"messages": [
+		{
+			"if": `{exists(trigger.data.next_asset_step)}`,
+			"app": "payment",
+			"payload": {
+				"asset": "base",
+				"outputs": [
+					{
+						"address": "{trigger.address}",
+						"amount": 1
+					}
+				]
+			}
+		},
+		{
+			"if": `{exists(trigger.data.next_asset_step)}`,
+			"app": "data",
+			"payload": {
+			"asset_step": "{trigger.data.next_asset_step}"
+			}
+		},
+		{
+			"if" :"{trigger.data.asset_symbol}",
+			"init": `{
+				$origin = definition[trigger.address][1].base_aa otherwise trigger.address;
+				$asset = trigger.unit;
+				$asset_symbol = trigger.data.asset_symbol;
+			}`,
+			"app": "state",
+			"state": `{
+				var['s2a_' || $asset_symbol || '|' || $origin || '|' || $oracle] = $asset;
+				var['a2s_' || $asset || '|' || $origin || '|' || $oracle] = $asset_symbol;
+			}`
+		}
+	]
+}]
