@@ -2,12 +2,13 @@
 	"BL1": "1. Bundesliga",
 	"BSA": "Brazilian A Series",
 	"PL": "Premier League",
-	"FL1": "French Ligue 1",
+	"L1": "French Ligue 1",
 	"PD": "Liga",
 	"SA": "Serie A",
 	"MLB": "MLB",
 	"NBA" : "NBA",
-	"websiteTitle": "Sports-betting assets",
+	"DED" : "Eredivisie",
+	"CL" : "Champions League",
 	"upcoming" : "upcoming",
 	"finished" : "finished",
 	"upcomingEvents" : "Upcoming events",
@@ -26,6 +27,7 @@
 	"toolTipTradeTeamAsset": "This asset can be swapped for same GB amount if {team} wins",
 	"toolTipTradeDrawAsset": "This asset can be swapped for same GB amount if there is a draw",
 	"toolTipTradeCanceledAsset": "This asset can be swapped for same GB amount if fixture is canceled or postponed",
-	"toolTipIssueAssets": "Issue betting assets in exchange of GB"
+	"toolTipIssueAssets": "Issue betting assets in exchange of GB",
+	"toolTipRedeem": "Swap {symbol} for the same amount of GB"
 }
 
