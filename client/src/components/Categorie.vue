@@ -23,6 +23,7 @@
 		</div>
 		<b-tabs>
 			<b-tab-item icon="calendar-month" :label="$t('upcoming')">
+				<b-loading :active.sync="isLoading"/>
 				<div v-if="upcoming_fixtures_rows[0]&&upcoming_fixtures_rows[0].length>0">
 					<div  class="tile is-ancestor" v-for="(row,row_index) in upcoming_fixtures_rows" :key="'row_' +row_index">
 						<fixture :fixture="fixture"  :comingFixture="true" v-for="(fixture,fixture_index) in row"  :type="getColorTypeForCat(categorie)" :key="'row_' +fixture_index"/>
@@ -31,6 +32,7 @@
 				<div v-else>
 					{{$t('noUpcomingFixtures')}}
 				</div>
+			
 			</b-tab-item>
 			<b-tab-item icon="calendar-check" :label="$t('finished')">
 				<div v-if="finished_fixtures_rows[0]&&finished_fixtures_rows[0].length>0">
@@ -74,6 +76,7 @@ export default {
 			all_fixtures_from_cat: [],
 			assocAllFilters: {},
 			assocSelectedFilters: {},
+			isLoading: true
 		}
 	},
 	created(){
@@ -88,10 +91,12 @@ export default {
 	methods: {
 
 		getFixturesForCatgorie(){
+			this.isLoading = true;
 			this.axios.get('/api/fixtures_by_cat/'+this.categorie).then((response) => {
 				this.all_fixtures_from_cat = response.data
 				this.initializeFilters();
-				this.filterFixturesAndCreateRows();		
+				this.filterFixturesAndCreateRows();
+				this.isLoading = false
 			})
 
 		},
@@ -101,7 +106,7 @@ export default {
 			for (var i=0; i < fixtures.length; i++){
 				this.assocAllFilters[fixtures[i].championship]=false;
 			}
-				this.assocSelectedFilters = {...this.assocAllFilters};
+			this.assocSelectedFilters = {...this.assocAllFilters};
 		},
 		filterFixturesAndCreateRows(){
 			const allFixtures = this.all_fixtures_from_cat;

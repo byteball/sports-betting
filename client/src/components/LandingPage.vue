@@ -1,7 +1,7 @@
 <template>
 	<section>
-		<title-bar>
-		</title-bar>
+		<title-bar />
+		<b-loading :active.sync="isLoading" />
 		<div class="tile is-ancestor" v-for="(row,index) in rows" :key="'row_' +index">
 			<div class="tile is-3 is-parent" v-for="(championships,key) in row" :key="'tile_' +key">
 					<router-link :to="'/categorie/'+ key.toLowerCase()">
@@ -45,13 +45,15 @@ export default {
 	data() {
 		return {
 			conf: conf,
-			rows: []
+			rows: [],
+			isLoading: true
 		}
 	},
 
 	created(){
 		this.axios.get('/api/categories').then((response) => {
 			this.rows = this.placeInRows(response.data, nb_columns);
+			this.isLoading = false;
 		});
 	},
 	computed:{
