@@ -65,6 +65,10 @@ app.get('/api/categories', async function(request, response){
 	return response.send(assocChampionshipsByCategorie)
 })
 
+app.get('/api/fixtures', async function(request, response){
+	return response.send(Object.values(assocFixturesByFeedName))
+})
+
 app.listen(conf.api_port);
 
 

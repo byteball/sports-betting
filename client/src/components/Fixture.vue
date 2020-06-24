@@ -25,8 +25,8 @@
 			</div>
 
 			<div v-else>
-					<result :fixture="fixture"/>
-					<redeem-assets class="mt-05" :fixture="fixture"/>
+				<result :fixture="fixture"/>
+				<redeem-assets class="mt-05" :fixture="fixture"/>
 			</div>
 				<div v-if="fixture.assets">
 					<div class="mt-1">

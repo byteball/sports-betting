@@ -165,6 +165,8 @@ eventBus.on("message_for_light", function(ws, subject, body){
 		});
 	}
 
+
+
 	if (subject == 'light/aa_response' && assocFeedNameByAaAddress[body.aa_address]){
 		network.requestFromLightVendor('light/get_aa_state_vars', {
 			address: body.aa_address,
