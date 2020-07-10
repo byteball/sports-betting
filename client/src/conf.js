@@ -1,4 +1,4 @@
-const testnet = true;
+const testnet = !!process.env.VUE_APP_TESTNET;
 
 exports.testnet = testnet;
 exports.website_name = testnet ? "Sport betting testnet" : "Sport betting";
