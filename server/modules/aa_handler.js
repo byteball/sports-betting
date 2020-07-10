@@ -141,8 +141,8 @@ function updateFixtureAssets(feed_name, assocVars){
 		assocFixturesByFeedName[feed_name] = {};
 	if (assocVars['hometeam']){
 		assocFixturesByFeedName[feed_name].assets = {
-			hometeam: assocVars['hometeam'],
-			awayteam: assocVars['awayteam'],
+			home: assocVars['hometeam'],
+			away: assocVars['awayteam'],
 			draw: assocVars['draw'],
 			canceled: assocVars['canceled'],
 		}
