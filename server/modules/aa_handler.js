@@ -18,6 +18,7 @@ function setAssocFixturesByFeedname(_assocFixturesByFeedName){
 
 eventBus.on('headless_wallet_ready', function(){
 	network.addLightWatchedAa(conf.issuer_base_aa);
+
 	wallet_general.addWatchedAddress(conf.oracle_address, function(error){
 		if (error)
 			console.log(error)
@@ -85,6 +86,14 @@ function getAaAddressForFeedname(feed_name){
 
 function getTokenInfo(feed_name){
 	var issuer_address = getAaAddressForFeedname(feed_name);
+
+	wallet_general.addWatchedAddress(issuer_address, function(error){
+		if (error)
+			console.log(error)
+		else
+			console.log(issuer_address + " added as watched address")
+	});
+
 	if (!isIssuerDefined(feed_name) || !areAssetsIssued(feed_name))
 		network.requestFromLightVendor('light/get_aa_state_vars', {
 			address: issuer_address,
@@ -164,21 +173,23 @@ eventBus.on("message_for_light", function(ws, subject, body){
 			}
 		});
 	}
+});
 
 
 
-	if (subject == 'light/aa_response' && assocFeedNameByAaAddress[body.aa_address]){
-		network.requestFromLightVendor('light/get_aa_state_vars', {
-			address: body.aa_address,
-			var_prefix_from: "0",
-			var_prefix_to: "z"
-		}, function(ws, request, objResponse){
-			if (objResponse.error)
-				return;
-			updateFixtureAssets(assocFeedNameByAaAddress[body.aa_address], objResponse);
-		});
-	}
-
+eventBus.on('aa_response', function(objAaResponse){
+	if (!assocFeedNameByAaAddress[objAaResponse.aa_address])
+		return console.log("feedname not in calendar anymore");
+	network.requestFromLightVendor('light/get_aa_state_vars', {
+		address: objAaResponse.aa_address,
+		var_prefix_from: "0",
+		var_prefix_to: "z"
+	}, function(ws, request, objStateVarsResponse){
+		if (objStateVarsResponse.error)
+			return;
+		updateFixtureForIssuerDefined(assocFeedNameByAaAddress[objAaResponse.aa_address], objAaResponse.aa_address);
+		updateFixtureAssets(assocFeedNameByAaAddress[objAaResponse.aa_address], objStateVarsResponse);
+	});
 });
 
 

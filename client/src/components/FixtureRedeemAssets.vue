@@ -20,19 +20,17 @@ export default {
 		}
 	},
 	created(){
-			if (this.fixture.assets){
-				if (this.fixture.result == this.fixture.feedHomeTeamName)
-					this.asset = this.fixture.assets.home;
-				else if (this.fixture.result == this.fixture.feedAwayTeamName)
-					this.asset = this.fixture.assets.away;
-				else if (this.fixture.result == 'draw')
-					this.asset = this.fixture.assets.draw;
-				else if (this.fixture.result == 'canceled')
-					this.asset = this.fixture.assets.canceled;
-				this.redeem_home_asset_link = protocol+":"+ this.fixture.aa_address+"?asset="+encodeURIComponent(this.asset);
-			}
-
-
+		if (this.fixture.assets){
+			if (this.fixture.result == this.fixture.feedHomeTeamName)
+				this.asset = this.fixture.assets.home;
+			else if (this.fixture.result == this.fixture.feedAwayTeamName)
+				this.asset = this.fixture.assets.away;
+			else if (this.fixture.result == 'draw')
+				this.asset = this.fixture.assets.draw;
+			else if (this.fixture.result == 'canceled')
+				this.asset = this.fixture.assets.canceled;
+			this.redeem_home_asset_link = protocol+":"+ this.fixture.aa_address+"?asset="+encodeURIComponent(this.asset);
+		}
 	}
 }
 </script>

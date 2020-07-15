@@ -161,7 +161,6 @@ function fetchCalendar(receivedCalendar){
 				
 				var fixture = assocFixturesByFeedName[feedname];
 				fixture.championship = championship;
-				console.log('assocFixturesByFeedName start ' + JSON.stringify(assocFixturesByFeedName));
 				aa_handler.getTokenInfo(feedname);
 
 				if (!assocFixturesByCategorie[cat])
