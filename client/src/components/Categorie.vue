@@ -49,7 +49,7 @@
 </template>
 <script>
 
-const conf = require("../conf.js")
+const conf = require("../js/conf.js")
 const nb_columns = 4;
 import Fixture from './Fixture.vue'
 import titleBar from './commons/TitleBar.vue'

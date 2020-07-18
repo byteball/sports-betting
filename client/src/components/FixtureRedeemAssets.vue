@@ -8,7 +8,7 @@
 </template>
 <script>
 
-import { protocol } from '../conf.js'
+import { protocol } from '../js/conf.js'
 
 export default {
 	props: {

@@ -12,7 +12,7 @@
 
 <script>
 
-const conf = require("../../conf.js")
+const conf = require("../../js/conf.js")
 
 export default {
 

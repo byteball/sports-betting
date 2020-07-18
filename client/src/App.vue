@@ -8,7 +8,8 @@
 </template>
 
 <script>
-const conf = require("./conf.js")
+const conf = require("./js/conf.js")
+const ws = require('./js/websocket.js');
 
 
 export default {
@@ -18,6 +19,9 @@ export default {
 			conf: conf
 		}
 	},
+	created(){
+		ws.setStore(this.$store);
+	}
 }
 </script>
 

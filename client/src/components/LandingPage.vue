@@ -28,7 +28,7 @@
 
 <script>
 
-const conf = require("../conf.js")
+const conf = require("../js/conf.js")
 const nb_columns = 4;
 import TitleBar from './commons/TitleBar.vue'
 import DesignHelpers from '../mixins/designHelpers'

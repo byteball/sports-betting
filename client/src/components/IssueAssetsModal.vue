@@ -2,7 +2,7 @@
 	<form action="">
 		<div class="modal-card" style="min-width:400px;">
 			<header class="modal-card-head">
-				<p class="modal-card-title">{{$t('issueAssetsModalTitle')}}</p>
+				<p class="modal-card-title">{{$t('issueAssetsModalTitle')}} <b-icon class="ml-05" icon="swap-horizontal-bold"/></p>
 			</header>
 			<section  class="modal-card-body" >
 				<div ref="div-create" class="p-2">
@@ -49,7 +49,7 @@
 
 <script>
 
-const conf = require("../conf.js");
+const conf = require("../js/conf.js");
 
 export default {
 	components: {

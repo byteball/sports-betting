@@ -14,7 +14,7 @@
 				</div>
 				<div v-else-if="comingFixture">
 					<b-tooltip :label="$t('toolTipIssueAssets')">
-						<span @click="openIssueAssetsModal"><a>{{$t('issueAssets')}}</a></span>
+						<span>{{$t('issueAssets')}}:<a @click="openIssueAssetsModal"><b-icon class="ml-05" icon="swap-horizontal-bold"/></a></span>
 					</b-tooltip>
 				</div>
 					{{fixture.result}}
@@ -29,41 +29,81 @@
 				<redeem-assets class="mt-05" :fixture="fixture"/>
 			</div>
 				<div v-if="fixture.assets">
-					<div class="mt-1">
-						<b-tooltip :label="$t('toolTipTradeAssets')">{{$t('tradeAssets')}}</b-tooltip>
+					<div class="mt-1 mb-05 has-text-centered">
+						<b-tooltip :label="$t('toolTipTradeAssets')"><p class="title is-5">{{$t('tradeAssets')}}</p></b-tooltip>
 					</div>
-					<div>
-						<b-tooltip :label="$t('toolTipTradeTeamAsset', {team: fixture.homeTeam})">
-							{{fixture.homeTeam}} wins
-						</b-tooltip>
-						<a :href="odex_base_url +'trade/' + fixture.home_asset_symbol  + '/GBYTE'" target="_blank">
-							<b-icon class="ml-05" icon="open-in-new"/>
-						</a>
-					</div>
-					<div>
-						<b-tooltip :label="$t('toolTipTradeTeamAsset', {team: fixture.awayTeam})">
-							{{fixture.awayTeam}} wins
-						</b-tooltip>
-						<a :href="odex_base_url +'trade/' + fixture.away_asset_symbol + '/GBYTE'" target="_blank">
-						 <b-icon class="ml-05" icon="open-in-new"/>
-						</a>
-					</div>
-					<div>
-						<b-tooltip :label="$t('toolTipTradeDrawAsset')">
-							Draw
-						</b-tooltip>
-						<a :href="odex_base_url +'trade/' + fixture.draw_asset_symbol + '/GBYTE'" target="_blank">
-							<b-icon class="ml-05" icon="open-in-new"/>
-						</a>
-					</div>
-					<div>
-						<b-tooltip :label="$t('toolTipTradeCanceledAsset')">
-							Canceled
-						</b-tooltip>
-						<a :href="odex_base_url +'trade/' + fixture.canceled_asset_symbol + '/GBYTE'" target="_blank">
-							<b-icon class="ml-05" icon="open-in-new"/>
-						</a>
-					</div>
+					<table>
+						<tr>
+							<th>
+								Result
+							</th>
+							<th>
+								Odds
+							</th>
+							<th>
+							</th>
+						</tr>
+						<tr>
+							<th class="pr-05">
+								<b-tooltip :label="$t('toolTipTradeTeamAsset', {team: fixture.homeTeam})">
+									{{fixture.homeTeam}}
+								</b-tooltip>
+							</th>
+							<th>
+								{{bestHomeOdds}}
+							</th>
+							<th>
+								<a :href="odex_base_url +'trade/' + fixture.home_asset_symbol  + '/GBYTE'" target="_blank">
+									<b-icon class="ml-05" icon="open-in-new"/>
+								</a>
+							</th>
+						</tr>
+						<tr>
+							<th>
+								<b-tooltip :label="$t('toolTipTradeDrawAsset')">
+									Draw
+								</b-tooltip>
+							</th>
+							<th>
+								{{bestDrawOdds}}
+							</th>
+							<th>
+								<a :href="odex_base_url +'trade/' + fixture.draw_asset_symbol  + '/GBYTE'" target="_blank">
+									<b-icon class="ml-05" icon="open-in-new"/>
+								</a>
+							</th>
+						</tr>
+						<tr>
+							<th class="pr-05">
+								<b-tooltip :label="$t('toolTipTradeTeamAsset', {team: fixture.awayTeam})">
+									{{fixture.awayTeam}}
+								</b-tooltip>
+							</th>
+							<th>
+								{{bestAwayOdds}}
+							</th>
+							<th>
+								<a :href="odex_base_url +'trade/' + fixture.away_asset_symbol  + '/GBYTE'" target="_blank">
+									<b-icon class="ml-05" icon="open-in-new"/>
+								</a>
+							</th>
+						</tr>
+						<tr>
+							<th>
+								<b-tooltip :label="$t('toolTipTradeCanceledAsset')">
+									Canceled
+								</b-tooltip>
+							</th>
+							<th>
+								{{bestCanceledOdds}}
+							</th>
+							<th>
+								<a :href="odex_base_url +'trade/' + fixture.canceled_asset_symbol  + '/GBYTE'" target="_blank">
+									<b-icon class="ml-05" icon="open-in-new"/>
+								</a>
+							</th>
+						</tr>
+					</table>
 				</div>
 	</article>
 	</div>
@@ -72,7 +112,7 @@
 
 <script>
 
-import {odex_base_url, testnet, oracle_address, issuer_base_aa, protocol } from '../conf.js'
+import {odex_base_url, testnet, oracle_address, issuer_base_aa, protocol } from '../js/conf.js'
 import IssueAssetsModal from './IssueAssetsModal.vue'
 import Result from './FixtureResult.vue'
 import RedeemAssets from './FixtureRedeemAssets.vue'
@@ -97,16 +137,55 @@ export default {
 			away_asset_symbol: '',
 			draw_asset_symbol: '',
 			canceled_asset_symbol: '',
-
 		}
 	},
 
 	created(){
-		const feedName = this.fixture.championship + '_' + this.fixture.feedHomeTeamName + '_' + this.fixture.feedAwayTeamName + '_' + this.fixture.localDay;
-		this.fixture.home_asset_symbol = feedName + '-' + this.fixture.feedHomeTeamName;
-		this.fixture.away_asset_symbol = feedName + '-' + this.fixture.feedAwayTeamName;
-		this.fixture.draw_asset_symbol = feedName + '-DRAW';
-		this.fixture.canceled_asset_symbol = feedName + '-CANCELED';
+this.init();
+	},
+
+	computed:{
+		getArticleClass: function(){
+			return "tile is-child notification " + this.type;
+		},
+		bestHomeOdds: function(){
+			return this.getBestOddsForPair(this.fixture.home_asset_symbol  + '/GBYTE');
+		},
+		bestAwayOdds: function(){
+			return this.getBestOddsForPair(this.fixture.away_asset_symbol  + '/GBYTE');
+		},
+		bestDrawOdds: function(){
+			return this.getBestOddsForPair(this.fixture.draw_asset_symbol  + '/GBYTE');
+		},
+		bestCanceledOdds: function(){
+			return this.getBestOddsForPair(this.fixture.canceled_asset_symbol  + '/GBYTE');
+		}
+	},
+	watch:{
+		fixture: function(){
+			this.init();
+		}
+	},
+	methods: {
+
+		init: function(){
+			const feedName = this.fixture.championship + '_' + this.fixture.feedHomeTeamName + '_' + this.fixture.feedAwayTeamName + '_' + this.fixture.localDay;
+			this.fixture.home_asset_symbol = feedName + '-' + this.fixture.feedHomeTeamName;
+			this.fixture.away_asset_symbol = feedName + '-' + this.fixture.feedAwayTeamName;
+			this.fixture.draw_asset_symbol = feedName + '-DRAW';
+			this.fixture.canceled_asset_symbol = feedName + '-CANCELED';
+
+			if(this.fixture.assets){
+				const ws = require('../js/websocket.js');
+				if (!this.$store.state.subscribed_assets[this.fixture.assets.home])
+					ws.subscribeOrderbook(this.fixture.assets.home, 'base', this.fixture.home_asset_symbol + '/GBYTE')
+				if (!this.$store.state.subscribed_assets[this.fixture.assets.away])
+					ws.subscribeOrderbook(this.fixture.assets.away, 'base', this.fixture.away_asset_symbol + '/GBYTE')
+				if (!this.$store.state.subscribed_assets[this.fixture.assets.draw])
+					ws.subscribeOrderbook(this.fixture.assets.draw, 'base', this.fixture.draw_asset_symbol + '/GBYTE')
+				if (!this.$store.state.subscribed_assets[this.fixture.assets.canceled])
+					ws.subscribeOrderbook(this.fixture.assets.canceled, 'base', this.fixture.canceled_asset_symbol + '/GBYTE')
+			}
 
 			var definition = `{
 				"base_aa": "${issuer_base_aa}",
@@ -121,16 +200,14 @@ export default {
 			var json_string = JSON.stringify(definition);
 			var base64data = encodeURIComponent(btoa(json_string));
 			this.issuer_creation_link = protocol+":data?app=definition&definition="+encodeURIComponent(definition);
-	},
-	computed:{
-		getArticleClass: function(){
-			return "tile is-child notification " + this.type;
-		}
-	},
-	watch:{
 
-	},
-	methods: {
+		},
+
+		getBestOddsForPair: function(pair){
+			if (!this.$store.state.best_ask_odds_by_pair[pair])
+				return 'n/a';
+			return (1/this.$store.state.best_ask_odds_by_pair[pair]).toFixed(2); 
+		},
 		openIssueAssetsModal(){
 			this.$buefy.modal.open({
 				parent: this,
@@ -151,6 +228,10 @@ export default {
 
 
 <style lang='scss' scoped>
+th {
+	color:currentcolor;
+}
+
 
 </style>
 

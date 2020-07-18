@@ -16,7 +16,7 @@
 	"noFinishedFixtures":"No finished fixtures found.",
 	"createAssetIssuer" : "Create market",
 	"issueAssets" : "Issue assets",
-	"tradeAssets": "Trade asset:",
+	"tradeAssets": "Trade on Odex",
 	"noResultInDag": "No result in DAG",
 	"toolTipCreateIssuer": "Open wallet and send a transaction to create an autonomous agent for this market",
 	"issueAssetsModalTitle" : "Issue assets",
