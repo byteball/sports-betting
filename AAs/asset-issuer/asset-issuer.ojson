@@ -1,6 +1,7 @@
 [
 	"autonomous agent",
 	{	
+		"doc_url": "https://raw.githubusercontent.com/byteball/sports-betting/master/AAs/asset-issuer/{{aa_address}}.json",
 		"init": `{
 			$timeout = 5;
 			$registry_address = "XVIFA4GZO7IHAUBFU47GSWMBZYOY56ZD";
@@ -18,14 +19,10 @@
 				bounce("away_team parameter cannot contain '|' or '_'");
 			if (!parse_date(params.expiry_date))
 				bounce("expiry_date parameter is not a valid date");
-			if ($timeout < 1)
-				bounce("timeout must be at least 1 day");
 			if (!is_valid_address(params.oracle))
 				bounce("oracle parameter is not a valid address");
-			$params_values_total_length = length(params.championship) + length(params.home_team) + length(params.away_team)
-			+ length(params.expiry_date) + length(params.oracle);
-			if (length(json_stringify(params)) != $params_values_total_length + 78)
-			 	bounce("foreign parameter(s) in AA definition"); // ensure there can be only one address for this set of parameters
+			if (array_length(keys(params)) != 5)
+				bounce("foreign parameter(s) in AA definition"); // ensure there can be only one address for this set of parameters
 			$base_amount_received = trigger.output[[asset=base]];
 		}`,
 		"messages": {
@@ -140,7 +137,7 @@
 								"outputs": [
 										{
 											"address": "{$registry_address}",
-											"amount": 1000
+											"amount": 1500
 										}
 									]
 								}
