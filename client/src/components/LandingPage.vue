@@ -4,7 +4,7 @@
 		<b-loading :active.sync="isLoading" />
 		<div class="tile is-ancestor" v-for="(row,index) in rows" :key="'row_' +index">
 			<div class="tile is-3 is-parent" v-for="(championships,key) in row" :key="'tile_' +key">
-					<router-link :to="'/categorie/'+ key.toLowerCase()">
+					<router-link :to="'/category/'+ key.toLowerCase()">
 				<article :class="getArticleClass(key)">
 					<p class="title is-5">
 						<b-icon :icon="getIconForCat(key)"></b-icon>

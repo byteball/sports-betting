@@ -9,9 +9,9 @@ export default new Router({
 
 	routes: [
 		{
-			name: 'categorie',
-			path: '/categorie/:categorie',
-			component: lazyLoading('components/Categorie'),
+			name: 'category',
+			path: '/category/:category',
+			component: lazyLoading('components/Category'),
 			props:  route => ({
 				...route.params
 			})

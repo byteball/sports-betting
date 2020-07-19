@@ -1,27 +1,27 @@
 export default {
 	methods: {
-		getColorTypeForCat: function(categorie){
-			if (categorie.toLowerCase() == 'soccer')
+		getColorTypeForCat: function(category){
+			if (category.toLowerCase() == 'soccer')
 				return 'is-soccer';
-			if (categorie.toLowerCase() == 'baseball')
+			if (category.toLowerCase() == 'baseball')
 				return 'is-baseball';
-			if (categorie.toLowerCase() == 'ice hockey')
+			if (category.toLowerCase() == 'ice hockey')
 				return 'is-hockey';
-			if (categorie.toLowerCase() == 'basketball')
+			if (category.toLowerCase() == 'basketball')
 				return 'is-basketball';
-			if (categorie.toLowerCase() == 'american football')
+			if (category.toLowerCase() == 'american football')
 				return 'is-us-football';
 		},
-		getIconForCat: function(categorie){
-			if (categorie.toLowerCase() == 'ice hockey')
+		getIconForCat: function(category){
+			if (category.toLowerCase() == 'ice hockey')
 			return 'hockey-sticks';
-			if (categorie.toLowerCase() == 'american football')
+			if (category.toLowerCase() == 'american football')
 				return 'football';
-			if (categorie.toLowerCase() == 'basketball')
+			if (category.toLowerCase() == 'basketball')
 				return 'basketball';
-			if (categorie.toLowerCase() == 'baseball')
+			if (category.toLowerCase() == 'baseball')
 				return 'baseball';
-			if (categorie.toLowerCase() == 'soccer')
+			if (category.toLowerCase() == 'soccer')
 				return 'soccer';
 		},
   }

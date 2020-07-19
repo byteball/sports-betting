@@ -17,8 +17,8 @@ var bCalendarFetched = false;
 
 var assocFixturesByChampionship = {};
 var assocFixturesByTeam = {};
-var assocFixturesByCategorie = {};
-var assocChampionshipsByCategorie = {};
+var assocFixturesBycategory = {};
+var assocChampionshipsByCategory = {};
 var assocFixturesByFeedName = {};
 
 
@@ -40,13 +40,13 @@ app.use(expressLogging(logger));
 app.get('/api/championships_by_cat/:cat', async function(request, response){
 	await waitForCalendarReady();
 	const cat = request.params.cat.charAt(0).toUpperCase() + request.params.cat.slice(1);
-	return response.send(assocChampionshipsByCategorie[cat] || []);
+	return response.send(assocChampionshipsByCategory[cat] || []);
 });
 
 app.get('/api/fixtures_by_cat/:cat', async function(request, response){
 	await waitForCalendarReady();
 	const cat = request.params.cat.charAt(0).toUpperCase() + request.params.cat.slice(1);
-	return response.send(assocFixturesByCategorie[cat] || []);
+	return response.send(assocFixturesBycategory[cat] || []);
 });
 
 app.get('/api/fixtures_by_championship/:championship', async function(request, response){
@@ -62,7 +62,7 @@ app.get('/api/fixtures_by_team/:team', async function(request, response){
 });
 
 app.get('/api/categories', async function(request, response){
-	return response.send(assocChampionshipsByCategorie)
+	return response.send(assocChampionshipsByCategory)
 })
 
 app.get('/api/fixtures', async function(request, response){
@@ -129,8 +129,8 @@ function fetchCalendar(receivedCalendar){
 
 	assocFixturesByChampionship = {};
 	assocFixturesByTeam = {};
-	assocFixturesByCategorie = {};
-	assocChampionshipsByCategorie = {};
+	assocFixturesBycategory = {};
+	assocChampionshipsByCategory = {};
 	assocFixturesByFeedName = {};
 	aa_handler.setAssocFixturesByFeedname(assocFixturesByFeedName);
 	const dateNow = (new Date()).toISOString();
@@ -140,8 +140,8 @@ function fetchCalendar(receivedCalendar){
 			continue;
 			console.log(cat);
 
-		if (!assocChampionshipsByCategorie[cat])
-			assocChampionshipsByCategorie[cat] = [];
+		if (!assocChampionshipsByCategory[cat])
+			assocChampionshipsByCategory[cat] = [];
 		for (var championship in receivedCalendar[cat]){
 			var fixtures = receivedCalendar[cat][championship].fixtures;
 			if (!fixtures)
@@ -150,7 +150,7 @@ function fetchCalendar(receivedCalendar){
 			for (var key in fixtures)
 				if (fixtures[key].date > dateNow)
 					nb_incoming_fixtures++
-			assocChampionshipsByCategorie[cat].push({
+			assocChampionshipsByCategory[cat].push({
 				championship,
 				nb_fixtures: Object.keys(receivedCalendar[cat][championship].fixtures).length,
 				nb_incoming_fixtures
@@ -163,9 +163,9 @@ function fetchCalendar(receivedCalendar){
 				fixture.championship = championship;
 				aa_handler.getTokenInfo(feedname);
 
-				if (!assocFixturesByCategorie[cat])
-					assocFixturesByCategorie[cat] = [];
-				assocFixturesByCategorie[cat].push(fixture);
+				if (!assocFixturesBycategory[cat])
+					assocFixturesBycategory[cat] = [];
+				assocFixturesBycategory[cat].push(fixture);
 
 				if (!assocFixturesByChampionship[championship])
 					assocFixturesByChampionship[championship] = [];

@@ -1,7 +1,7 @@
 <template>
 	<section>
 		<title-bar>
-			<categorie-selector class="column" :selectedCategorie="categorie" />
+			<category-selector class="column" :selectedcategory="category" />
 		</title-bar>
 		<div class="columns">
 			<div class="column"/>
@@ -26,7 +26,7 @@
 				<b-loading :active.sync="isLoading"/>
 				<div v-if="upcoming_fixtures_rows[0]&&upcoming_fixtures_rows[0].length>0">
 					<div  class="tile is-ancestor" v-for="(row,row_index) in upcoming_fixtures_rows" :key="'row_' +row_index">
-						<fixture :fixture="fixture"  :comingFixture="true" v-for="(fixture,fixture_index) in row"  :type="getColorTypeForCat(categorie)" :key="'row_' +fixture_index"/>
+						<fixture :fixture="fixture"  :comingFixture="true" v-for="(fixture,fixture_index) in row"  :type="getColorTypeForCat(category)" :key="'row_' +fixture_index"/>
 					</div>
 				</div>
 				<div v-else>
@@ -37,7 +37,7 @@
 			<b-tab-item icon="calendar-check" :label="$t('finished')">
 				<div v-if="finished_fixtures_rows[0]&&finished_fixtures_rows[0].length>0">
 					<div class="tile is-ancestor" v-for="(row,row_index) in finished_fixtures_rows" :key="'row_' +row_index">
-						<fixture :fixture="fixture"  v-for="(fixture,fixture_index) in row" :type="getColorTypeForCat(categorie)" :key="'row_' +fixture_index"/>
+						<fixture :fixture="fixture"  v-for="(fixture,fixture_index) in row" :type="getColorTypeForCat(category)" :key="'row_' +fixture_index"/>
 					</div>
 				</div>
 				<div v-else>
@@ -53,7 +53,7 @@ const conf = require("../js/conf.js")
 const nb_columns = 4;
 import Fixture from './Fixture.vue'
 import titleBar from './commons/TitleBar.vue'
-import CategorieSelector from './CategorieSelector.vue'
+import categorySelector from './CategorySelector.vue'
 import Vue from 'vue'
 import TilesHelpers from '../mixins/tilesHelpers'
 import DesignHelpers from '../mixins/designHelpers'
@@ -62,11 +62,11 @@ export default {
 	mixins:[TilesHelpers,DesignHelpers],
 	components: {
 		Fixture,
-		CategorieSelector,
+		categorySelector,
 		titleBar
 	},
 	props: {
-		categorie: String
+		category: String
 	},
 	data() {
 		return {
@@ -84,7 +84,7 @@ export default {
 	},
 
 	watch:{
-		categorie: function(){
+		category: function(){
 			this.getFixturesForCatgorie();
 		}
 	},
@@ -92,7 +92,7 @@ export default {
 
 		getFixturesForCatgorie(){
 			this.isLoading = true;
-			this.axios.get('/api/fixtures_by_cat/'+this.categorie).then((response) => {
+			this.axios.get('/api/fixtures_by_cat/'+this.category).then((response) => {
 				this.all_fixtures_from_cat = response.data
 				this.initializeFilters();
 				this.filterFixturesAndCreateRows();

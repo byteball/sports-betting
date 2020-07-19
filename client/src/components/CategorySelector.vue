@@ -5,7 +5,7 @@
 				@click="onClick(key)" 
 				:type="getColorTypeForCat(key)"
 				size="is-large"
-				:outlined="selectedCategorie!=key.toLowerCase()"
+				:outlined="selectedcategory!=key.toLowerCase()"
 				v-for="(championships,key) in cats" 
 				:key="'button_' +key">
 				 <b-icon :icon="getIconForCat(key)"></b-icon>
@@ -27,7 +27,7 @@ export default {
 	
 	},
 	props: {
-		selectedCategorie: String
+		selectedcategory: String
 	},
 	data() {
 		return {
@@ -49,8 +49,8 @@ export default {
 	},
 	methods: {
 		onClick: function(item){
-			this.$router.push({ name: 'categorie', params: {
-				categorie: item.toLowerCase()
+			this.$router.push({ name: 'category', params: {
+				category: item.toLowerCase()
 				} 
 			})
 		},
