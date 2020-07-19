@@ -7,28 +7,31 @@
 				<p class="title is-5"> on {{fixture.localDay}}</p>
 			</div>
 			<div v-if="!fixture.result">
-				<div v-if="!fixture.aa_address&&comingFixture">
+				<div v-if="!comingFixture">
+					{{$t('noResultInDag')}} 
+				</div>
+				<hr>
+				<div v-if="!fixture.aa_address && comingFixture">
 				<b-tooltip :label="$t('toolTipCreateIssuer')">
 					{{$t('createAssetIssuer')}}: <a :href='issuer_creation_link'> <b-icon class="ml-05" icon="open-in-new"/></a>
 				</b-tooltip>
+				<hr>
 				</div>
 				<div v-else-if="comingFixture">
 					<b-tooltip :label="$t('toolTipIssueAssets')">
 						<span>{{$t('issueAssets')}}:<a @click="openIssueAssetsModal"><b-icon class="ml-05" icon="swap-horizontal-bold"/></a></span>
 					</b-tooltip>
 				</div>
-					{{fixture.result}}
 
-				<div v-if="!comingFixture">
-					{{$t('noResultInDag')}} 
-				</div>
 			</div>
 
 			<div v-else>
 				<result :fixture="fixture"/>
+				<hr>
 				<redeem-assets class="mt-05" :fixture="fixture"/>
 			</div>
 				<div v-if="fixture.assets">
+					<hr>
 					<div class="mt-1 mb-05 has-text-centered">
 						<b-tooltip :label="$t('toolTipTradeAssets')"><p class="title is-5">{{$t('tradeAssets')}}</p></b-tooltip>
 					</div>
