@@ -8,12 +8,9 @@ It provides list of past and upcoming matches with the following informations:
 - Home team
 - Away team
 - Date
-If asset issuer has been created:
-- address of the asset issuer
-If betting assets have been defined:
-- id of each kind of asset
-If the result has been posted by oracle:
-- posted result
+- asset issuer address (if the asset issuer has been defined)
+- id of each kind of asset (if betting assets have been issued)
+- posted result (f the result has been posted by oracle)
 
 ## Installation
 

@@ -11,6 +11,9 @@ See [documentation](AAs/README.md).
 
 List matches available for betting and provide URIs to easily interact with Autonomous Agents from the GUI wallet.
 
+![frontend](frontend.png)
+
+
 ### Backend
 
 Nodejs application based on an Obyte node.
@@ -19,4 +22,4 @@ See [documentation](server/README.md).
 ### Frontend
 
 Vuejs application.
-See [documentation](server/README.md).
+See [documentation](client/README.md).
