@@ -38,4 +38,119 @@ location /api/ {
 
 ## Endpoints
 
-Documentation coming soon.
+- `/api/categories`: return active categories, their championships and number of matches available for each of them
+
+```json
+{
+	"Basketball": [{
+		"championship": "NBA",
+		"nb_fixtures": 88,
+		"nb_incoming_fixtures": 88
+	}],
+	"Soccer": [{
+		"championship": "CL",
+		"nb_fixtures": 6,
+		"nb_incoming_fixtures": 6
+	}, {
+		"championship": "DED",
+		"nb_fixtures": 0,
+		"nb_incoming_fixtures": 0
+	}, {
+		"championship": "PD",
+		"nb_fixtures": 40,
+		"nb_incoming_fixtures": 0
+	}, {
+		"championship": "L1",
+		"nb_fixtures": 0,
+		"nb_incoming_fixtures": 0
+	}, {
+		"championship": "SA",
+		"nb_fixtures": 80,
+		"nb_incoming_fixtures": 32
+	}, {
+		"championship": "PL",
+		"nb_fixtures": 50,
+		"nb_incoming_fixtures": 10
+	}]
+}
+
+```
+
+- `/api/championships_by_cat/<cat>` return championships for a category
+
+```json
+[{
+	"championship": "CL",
+	"nb_fixtures": 6,
+	"nb_incoming_fixtures": 6
+}, {
+	"championship": "DED",
+	"nb_fixtures": 0,
+	"nb_incoming_fixtures": 0
+}, {
+	"championship": "PD",
+	"nb_fixtures": 40,
+	"nb_incoming_fixtures": 0
+}, {
+	"championship": "L1",
+	"nb_fixtures": 0,
+	"nb_incoming_fixtures": 0
+}, {
+	"championship": "SA",
+	"nb_fixtures": 80,
+	"nb_incoming_fixtures": 32
+}, {
+	"championship": "PL",
+	"nb_fixtures": 50,
+	"nb_incoming_fixtures": 10
+}]
+
+```
+
+- `/api/fixtures` return all matches available for betting
+
+```json
+[{
+		"homeTeam": "New Orleans Pelicans",
+		"awayTeam": "Utah Jazz",
+		"feedHomeTeamName": "NOP",
+		"feedAwayTeamName": "UTA",
+		"date": "2020-07-30T22:30:00.000Z",
+		"localDay": "2020-07-30",
+		"championship": "NBA"
+	}, {
+		"homeTeam": "Los Angeles Lakers",
+		"awayTeam": "Los Angeles Clippers",
+		"feedHomeTeamName": "LAL",
+		"feedAwayTeamName": "LAC",
+		"date": "2020-07-31T01:00:00.000Z",
+		"localDay": "2020-07-30",
+		"championship": "NBA"
+	}, {
+		"homeTeam": "Brooklyn Nets",
+		"awayTeam": "Orlando Magic",
+		"feedHomeTeamName": "BKN",
+		"feedAwayTeamName": "ORL",
+		"date": "2020-07-31T18:30:00.000Z",
+		"localDay": "2020-07-31",
+		"championship": "NBA"
+	}, {
+		"homeTeam": "Portland Trail Blazers",
+		"awayTeam": "Memphis Grizzlies",
+		"feedHomeTeamName": null,
+		"feedAwayTeamName": "MEM",
+		"date": "2020-07-31T20:00:00.000Z",
+		"localDay": "2020-07-31",
+		"championship": "NBA"
+	},
+ 	...
+ ]
+
+```
+
+- `/api/fixtures_by_cat/<cat>` return all matches available for betting for a category
+
+- `/api/fixtures_by_championship/<championship>` return all matches available for betting for a championship
+
+- `/api/fixtures_by_team/<team>` 
+
