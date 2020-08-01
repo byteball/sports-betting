@@ -197,7 +197,7 @@ this.init();
 					"home_team": "${this.fixture.feedHomeTeamName}",
 					"away_team": "${this.fixture.feedAwayTeamName}", 
 					"championship": "${this.fixture.championship}", 
-					"expiry_date": "${this.fixture.localDay}", 
+					"fixture_date": "${this.fixture.localDay}", 
 				}
 			}`;
 			var json_string = JSON.stringify(definition);

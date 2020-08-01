@@ -61,7 +61,7 @@ describe('Define AAs test', function () {
 							"championship":"BL1",
 							"home_team":"BYM",
 							"away_team":"LMA",
-							"expiry_date": "${issuer_0_fixture_day}"
+							"fixture_date": "${issuer_0_fixture_day}"
 					}
 			}
 		]`)
@@ -81,7 +81,7 @@ describe('Define AAs test', function () {
 							"championship":"PL",
 							"home_team":"MUN",
 							"away_team":"LIV",
-							"expiry_date": "${issuer_1_fixture_day}"
+							"fixture_date": "${issuer_1_fixture_day}"
 					}
 			}
 		]`)
@@ -108,7 +108,7 @@ describe('Define AAs test', function () {
 		expect(vars["awayteam"]).to.be.validUnit;
 		expect(vars["draw"]).to.be.validUnit;
 		expect(vars["canceled"]).to.be.validUnit;
-		expect(vars["amount_to_paid"]).to.be.equal((alice_base_amount_paid - 10000));
+		expect(vars["amount_to_pay"]).to.be.equal((alice_base_amount_paid - 10000));
 
 		var alice_balances = await network.wallet.alice.getBalance();
 		expect(Object.keys(alice_balances).length).to.be.equal(6); // base + 4 betting assets + random_asset
@@ -158,7 +158,7 @@ describe('Define AAs test', function () {
 		expect(vars["awayteam"]).to.be.equal(this.awayteam_asset);
 		expect(vars["draw"]).to.be.equal(this.draw_asset);
 		expect(vars["canceled"]).to.be.equal(this.canceled_asset);
-		expect(vars["amount_to_paid"]).to.be.equal((alice_base_amount_paid - 10000));
+		expect(vars["amount_to_pay"]).to.be.equal((alice_base_amount_paid - 10000));
 
 		var bob_balances = await network.wallet.bob.getBalance();
 		expect(Object.keys(bob_balances).length).to.be.equal(5);
@@ -198,8 +198,7 @@ describe('Define AAs test', function () {
 		expect(response.response.error).to.be.equal("home team didn't win")
 
 		var { unit, error } = await network.wallet.alice.sendMulti({
-
-			asset: this.awayteam_asset,
+					asset: this.awayteam_asset,
 					asset_outputs:[{
 						amount: alice_base_amount_paid / 2 - 10000,
 						address: this.issuer_0_address,
@@ -449,8 +448,6 @@ describe('Define AAs test', function () {
 	it('alice tries withdraw issuer_0 with wrong assets when deadline reached', async () => {
 	
 		var { error } = await network.timetravel({ to: issuer_0_fixture_timeout_day })
-
-
 		var { unit, error } = await network.wallet.alice.sendMulti({
 
 			asset: this.canceled_asset,
@@ -539,7 +536,7 @@ describe('Define AAs test', function () {
 		expect(vars["awayteam"]).to.be.validUnit;
 		expect(vars["draw"]).to.be.validUnit;
 		expect(vars["canceled"]).to.be.validUnit;
-		expect(vars["amount_to_paid"]).to.be.equal((issuer_1_bob_base_amount_paid - 10000));
+		expect(vars["amount_to_pay"]).to.be.equal((issuer_1_bob_base_amount_paid - 10000));
 
 		var bob_balances = await network.wallet.bob.getBalance();
 		expect(Object.keys(bob_balances).length).to.be.equal(9); // base + 3 betting assets + random_asset + 4 betting assets

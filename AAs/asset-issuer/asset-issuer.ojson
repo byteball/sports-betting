@@ -17,8 +17,8 @@
 				bounce("home_team parameter cannot contain '|' or '_'");
 			if (contains(params.away_team, '_') OR contains(params.away_team, '|'))
 				bounce("away_team parameter cannot contain '|' or '_'");
-			if (!parse_date(params.expiry_date))
-				bounce("expiry_date parameter is not a valid date");
+			if (!parse_date(params.fixture_date))
+				bounce("fixture_date parameter is not a valid date");
 			if (!is_valid_address(params.oracle))
 				bounce("oracle parameter is not a valid address");
 			if (array_length(keys(params)) != 5)
@@ -39,7 +39,7 @@
 							$recipient_address = trigger.address;
 							$asset_amount = $base_amount_received - 10000;
 						} else {
-							$symbol_left_part = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.expiry_date;
+							$symbol_left_part = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.fixture_date;
 							if (trigger.address != $registry_address){ // if triggered by user we are at first step of asset definition
 								$asset_type = "hometeam";
 								$asset_symbol = $symbol_left_part || '-' || params.home_team;
@@ -55,7 +55,7 @@
 								$asset_symbol = $symbol_left_part || '-CANCELED';
 							} else if (trigger.data.asset_step == 4){
 								$recipient_address = trigger.initial_address;
-								$asset_amount = var['amount_to_paid'];
+								$asset_amount = var['amount_to_pay'];
 							}
 							if (trigger.data.asset_step AND trigger.data.asset_step < 4)
 								$next_asset_step = trigger.data.asset_step + 1; // asset_step is incremented at every ping-pong with registery until all assets are defined
@@ -157,7 +157,7 @@
 								"state": "{
 									var[$asset_type] = response_unit;
 									if ($next_asset_step == 1){
-										var['amount_to_paid'] = $base_amount_received - 10000;
+										var['amount_to_pay'] = $base_amount_received - 10000;
 									}
 								}"
 							}
@@ -172,7 +172,7 @@
 							bounce("foreign asset");
 
 						$amount = trigger.output[[asset!=base]];
-						$feedname = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.expiry_date;
+						$feedname = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.fixture_date;
 						$datafeed_value = data_feed[[oracles=params.oracle, feed_name=$feedname, ifnone='_none']];
 						if ($asset == var['hometeam'] AND $datafeed_value != params.home_team)
 							bounce("home team didn't win");
@@ -181,7 +181,7 @@
 						if ($asset == var['draw'] AND $datafeed_value != 'draw')
 							bounce("there wasn't a draw");
 						if ($asset == var['canceled'] AND $datafeed_value != 'canceled'){
-							$expired = timestamp > parse_date(params.expiry_date) + $timeout * 24 * 3600;
+							$expired = timestamp > parse_date(params.fixture_date) + $timeout * 24 * 3600;
 							if ($datafeed_value != '_none')
 								bounce("there wasn't a cancelation or postponement");
 							if (!$expired)

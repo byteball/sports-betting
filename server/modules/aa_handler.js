@@ -74,7 +74,7 @@ function getAaAddressForFeedname(feed_name){
 				"championship": split_feedname[0],
 				"home_team": split_feedname[1],
 				"away_team": split_feedname[2],
-				"expiry_date": split_feedname[3]
+				"fixture_date": split_feedname[3]
 			}
 		}
 	];
@@ -167,7 +167,7 @@ eventBus.on("message_for_light", function(ws, subject, body){
 				var template = message.payload.definition[1];
 				var params = template.params;
 				if (template.base_aa == conf.issuer_base_aa){
-					var templated_feed_name = params.championship + '_' + params.home_team + '_' + params.away_team + '_' + params.expiry_date; 
+					var templated_feed_name = params.championship + '_' + params.home_team + '_' + params.away_team + '_' + params.fixture_date; 
 					updateFixtureForIssuerDefined(templated_feed_name, getAaAddressForFeedname(templated_feed_name));
 				}
 			}
