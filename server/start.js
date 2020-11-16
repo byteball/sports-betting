@@ -9,6 +9,7 @@ const expressLogging = require('express-logging');
 const logger = require('logops');
 const aa_handler = require("./modules/aa_handler.js");
 const dag = require('aabot/dag.js');
+const cors = require('cors');
 
 const CALENDAR_REQUEST_TIMEOUT = 30; // in seconds
 
@@ -36,7 +37,7 @@ app.set('trust proxy', 1);
 
 app.use(limiter);
 app.use(expressLogging(logger));
-
+app.use(cors());
 
 
 app.get('/api/championships_by_cat/:cat', async function(request, response){
