@@ -21,6 +21,7 @@ export default {
 	},
 	created(){
 		ws.setStore(this.$store);
+		this.$store.dispatch('getCurrencies');
 	}
 }
 </script>

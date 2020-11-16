@@ -1,30 +1,16 @@
 <template>
 	<section>
 		<title-bar>
-			<category-selector class="column" :selectedcategory="category" />
+			<currency-selector class="column"  />
 		</title-bar>
 		<div class="columns">
-			<div class="column"/>
-			<div class="column is-two-thirds" >
-				<div style="height:100%;">
-				</div>
-				<div class="field" style="margin-top:2rem;" >
-					<b-switch
-						v-for="(value,key) in assocAllFilters" 
-						v-model="assocSelectedFilters[key]"
-						@input="filterFixturesAndCreateRows"
-						:key="'button_'+key"
-						size="is-small"
-					>
-					{{$t(key)}}
-					</b-switch>
-				</div>
-			</div>
+			<category-selector v-if="$store.state.isInitialized" class="column" :selectedcategory="category" />
 		</div>
-		<b-tabs>
+		<b-tabs v-if="$store.state.isInitialized">
 			<b-tab-item icon="calendar-month" :label="$t('upcoming')">
 				<b-loading :active.sync="isLoading"/>
-				<div v-if="upcoming_fixtures_rows[0]&&upcoming_fixtures_rows[0].length>0">
+					<championship-selector :filters="assocAllFilters" v-model="assocSelectedFilters" @input="filterFixturesAndCreateRows" />
+				<div v-if="upcoming_fixtures_rows[0] && upcoming_fixtures_rows[0].length > 0">
 					<div  class="tile is-ancestor" v-for="(row,row_index) in upcoming_fixtures_rows" :key="'row_' +row_index">
 						<fixture :fixture="fixture"  :comingFixture="true" v-for="(fixture,fixture_index) in row"  :type="getColorTypeForCat(category)" :key="'row_' +fixture_index"/>
 					</div>
@@ -35,6 +21,8 @@
 			
 			</b-tab-item>
 			<b-tab-item icon="calendar-check" :label="$t('finished')">
+							<championship-selector :filters="assocAllFilters" v-model="assocSelectedFilters" @input="filterFixturesAndCreateRows" />
+
 				<div v-if="finished_fixtures_rows[0]&&finished_fixtures_rows[0].length>0">
 					<div class="tile is-ancestor" v-for="(row,row_index) in finished_fixtures_rows" :key="'row_' +row_index">
 						<fixture :fixture="fixture"  v-for="(fixture,fixture_index) in row" :type="getColorTypeForCat(category)" :key="'row_' +fixture_index"/>
@@ -54,6 +42,9 @@ const nb_columns = 4;
 import Fixture from './Fixture.vue'
 import titleBar from './commons/TitleBar.vue'
 import categorySelector from './CategorySelector.vue'
+import championshipSelector from './ChampionshipSelector.vue'
+import currencySelector from './CurrencySelector.vue'
+
 import Vue from 'vue'
 import TilesHelpers from '../mixins/tilesHelpers'
 import DesignHelpers from '../mixins/designHelpers'
@@ -63,7 +54,9 @@ export default {
 	components: {
 		Fixture,
 		categorySelector,
-		titleBar
+		titleBar,
+		championshipSelector,
+		currencySelector
 	},
 	props: {
 		category: String
@@ -80,17 +73,17 @@ export default {
 		}
 	},
 	created(){
-		this.getFixturesForCatgorie()
+		this.getFixturesForCategorie()
 	},
 
 	watch:{
 		category: function(){
-			this.getFixturesForCatgorie();
+			this.getFixturesForCategorie();
 		}
 	},
 	methods: {
 
-		getFixturesForCatgorie(){
+		getFixturesForCategorie(){
 			this.isLoading = true;
 			this.axios.get('/api/fixtures_by_cat/'+this.category).then((response) => {
 				this.all_fixtures_from_cat = response.data
@@ -111,24 +104,20 @@ export default {
 		filterFixturesAndCreateRows(){
 			const allFixtures = this.all_fixtures_from_cat;
 			const dateNow = (new Date()).toISOString();
-			const upcomingFixtures = allFixtures.filter((fixture)=>{
+			const upcomingFixtures = allFixtures.filter(this.filterBySelected).filter((fixture)=>{
 				if (dateNow > fixture.date)
 					return false;
-				if (this.isNoFilterSelected() || this.assocSelectedFilters[fixture.championship])
-					return true;
-				return false;
+				return true;
 			}).sort((a,b)=>{
 				if(a.date > b.date)
 					return 1;
 				else
 					return -1;
 			});
-			const finishedFixtures = allFixtures.filter((fixture)=>{
+			const finishedFixtures = allFixtures.filter(this.filterBySelected).filter((fixture)=>{
 				if (dateNow <= fixture.date)
 					return false;
-				if (this.isNoFilterSelected() || this.assocSelectedFilters[fixture.championship])
-					return true;
-				return false;
+				return true;
 			}).sort((a,b)=>{
 				if(a.date < b.date)
 					return 1;
@@ -137,6 +126,11 @@ export default {
 			});
 			this.upcoming_fixtures_rows= this.placeInRows(upcomingFixtures, nb_columns);
 			this.finished_fixtures_rows= this.placeInRows(finishedFixtures, nb_columns);
+		},
+		filterBySelected(fixture){
+			if (this.isNoFilterSelected() || this.assocSelectedFilters[fixture.championship])
+				return true;
+			return false;
 		},
 		isNoFilterSelected(){
 			for (var key in this.assocSelectedFilters){

@@ -8,19 +8,21 @@ const rateLimit = require("express-rate-limit");
 const expressLogging = require('express-logging');
 const logger = require('logops');
 const aa_handler = require("./modules/aa_handler.js");
+const dag = require('aabot/dag.js');
 
 const CALENDAR_REQUEST_TIMEOUT = 30; // in seconds
 
 var oracle_device_address;
 var bRequestingCalendar = false;
 var bCalendarFetched = false;
+var bSymbolFetched = false;
 
 var assocFixturesByChampionship = {};
 var assocFixturesByTeam = {};
 var assocFixturesBycategory = {};
 var assocChampionshipsByCategory = {};
 var assocFixturesByFeedName = {};
-
+var assocCurrenciesBySymbol = {};
 
 
 const app = express()
@@ -69,11 +71,18 @@ app.get('/api/fixtures', async function(request, response){
 	return response.send(Object.values(assocFixturesByFeedName))
 })
 
+app.get('/api/currencies', async function(request, response){
+	await waitForSymbolsReady();
+	return response.send(assocCurrenciesBySymbol)
+})
+
+
 app.listen(conf.api_port);
 
 
 
 async function start(){
+	await fetchSymbols();
 	await requestCalendar();
 	setInterval(requestCalendar, 60 * 60 * 1000);
 }
@@ -90,8 +99,33 @@ function waitForCalendarReady(){
 	})
 }
 
+function waitForSymbolsReady(){
+	return new Promise((resolve)=>{
+		if (bSymbolFetched)
+			return resolve();
+		else
+			setTimeout(()=>{
+				waitForCalendarReady().then(resolve);
+			}, 500);
+	})
+}
 
-async function requestCalendar(){
+async function fetchSymbols(){
+	await Promise.all(conf.currencies.map(fetchSymbol));
+	bSymbolFetched = true;
+}
+
+async function fetchSymbol(asset){
+	if (asset == 'base')
+		return 	assocCurrenciesBySymbol['GBYTE'] = {asset, decimals: 9};
+	const symbol = await dag.readAAStateVar(conf.token_registry_aa_address, "a2s_" + asset);
+	const desc_hash = await dag.readAAStateVar(conf.token_registry_aa_address, "current_desc_" + asset);
+	const decimals = await dag.readAAStateVar(conf.token_registry_aa_address, "decimals_" + desc_hash);
+	assocCurrenciesBySymbol[symbol] = {asset, decimals};
+}
+
+
+function requestCalendar(){
 	return new Promise ((resolve)=>{
 		if (bRequestingCalendar){
 			console.log("already requesting calendar");
@@ -156,12 +190,11 @@ function fetchCalendar(receivedCalendar){
 				nb_incoming_fixtures
 			});
 			for (var feedname in receivedCalendar[cat][championship].fixtures){
-				console.log(feedname);
 				assocFixturesByFeedName[feedname] = receivedCalendar[cat][championship].fixtures[feedname];
 				
 				var fixture = assocFixturesByFeedName[feedname];
 				fixture.championship = championship;
-				aa_handler.getTokenInfo(feedname);
+				aa_handler.watchTokens(feedname);
 
 				if (!assocFixturesBycategory[cat])
 					assocFixturesBycategory[cat] = [];

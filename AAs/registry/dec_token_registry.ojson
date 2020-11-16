@@ -1,0 +1,338 @@
+{
+	doc_url: "https://obyte.org/token-registry.json",
+	init: `{
+		$challenging_period = 30*24*3600;
+		$grace_period = 30*24*3600; // new assets can change their symbol immediately during this period after the first registration, if a new symbol got overwhelming support over the previous symbol
+		$overwhelming_multiplier = 5;
+		$min_amount = 1e8;
+
+		$amount = trigger.output[[asset=base]];
+
+		$drawer = trigger.data.drawer OTHERWISE 0;
+		if (!is_integer($drawer))
+			bounce("drawer must be integer");
+		if ($drawer != 0 AND $drawer != 1 AND $drawer != 7 AND $drawer != 30 AND $drawer != 90 AND $drawer != 180 AND $drawer != 360)
+			bounce("bad drawer: " || $drawer);
+		
+		$symbol = trigger.data.symbol;
+		if ($symbol){
+			if (typeof($symbol) != 'string')
+				bounce("symbol must be string");
+			if ($symbol != to_upper($symbol))
+				bounce("symbol must be uppercase");
+			if (length($symbol) > 40)
+				bounce("symbol must be max 40 characters long");
+			if ($symbol == 'GBYTE' OR $symbol == 'MBYTE' OR $symbol == 'KBYTE' OR $symbol == 'BYTE' OR $symbol == 'TBYTE')
+				bounce("reserved symbol");
+		}
+
+		$description = trigger.data.description;
+		if ($description){
+			if (typeof($description) != 'string')
+				bounce("description must be string");
+			if (length($description) > 140)
+				bounce("description must be max 140 characters long");
+		}
+
+		$decimals = trigger.data.decimals;
+		if (exists($decimals)){
+			if (!is_integer($decimals))
+				bounce("decimals must be integer");
+			if ($decimals < 0 OR $decimals > 15)
+				bounce("decimals must be between 0 and 15");
+		}
+
+		$asset = trigger.data.asset;
+		if ($asset){
+			if (typeof($asset) != 'string')
+				bounce("asset must be string");
+			if (!asset[$asset].exists)
+				bounce("asset " || $asset || " does not exist");
+		}
+	}`,
+	messages: {
+		cases: [
+			{ // withdraw one's support
+				if: `{ trigger.data.withdraw AND trigger.data.amount AND $asset AND $symbol }`,
+				init: `{
+					$drawer_key = trigger.address || '_' || $drawer || '_' || $symbol || '_' || $asset;
+					if (var[$drawer_key] < trigger.data.amount)
+						bounce("not enough funds in this drawer");
+					if ($drawer){
+						$expiry_ts = var[$drawer_key || '_expiry_ts'];
+						if ($expiry_ts AND timestamp < $expiry_ts)
+							bounce("warm-up period has not expired yet");
+						$allowed = !!$expiry_ts; // after expiry
+					}
+					else
+						$allowed = true;
+				}`,
+				messages: [
+					{
+						if: `{$allowed}`,
+						app: 'payment',
+						payload: {
+							outputs: [{address: "{trigger.address}", amount: "{trigger.data.amount}"}]
+						}
+					},
+					{
+						app: 'state',
+						state: `{
+							if ($allowed){
+								var[$drawer_key] -= trigger.data.amount;
+								if ($drawer)
+									var[$drawer_key || '_expiry_ts'] = false; // lock the drawer again
+								var['support_' || $symbol || '_' || $asset] -= trigger.data.amount; // if the support drops below some competitor, the current leader is not updated automatically, someone has to trigger the update with a new deposit (even a small one)
+								var['balance_' || trigger.address || '_' || $asset] -= trigger.data.amount;
+								$desc_hash = var['desc_choice_' || $asset || '_' || trigger.address];
+								if ($desc_hash)
+									var['desc_support_' || $asset || '_' || $desc_hash] -= trigger.data.amount;
+							}
+							else if (!$expiry_ts)
+								var[$drawer_key || '_expiry_ts'] = timestamp + $drawer * 24 * 3600;
+						}`
+					}
+				]
+			},
+
+			{ // vote for a description
+				if: `{$description AND exists($decimals) AND ($asset OR $symbol) AND $amount < $min_amount}`,
+				init: `{
+					if ($asset){
+						$voted_asset = $asset;
+						$voted_symbol = var['a2s_' || $voted_asset];
+					}
+					else {
+						$voted_asset = var['s2a_' || $symbol];
+						if (!$voted_asset)
+							bounce("no asset found by symbol " || $symbol);
+						$voted_symbol = $symbol;
+					}
+					$balance = var['balance_' || trigger.address || '_' || $voted_asset];
+					if (!$balance)
+						bounce("you have no balance in this asset");
+					
+					$desc_hash = sha256($description || $decimals);
+					$current_my_desc_hash = var['desc_choice_' || $voted_asset || '_' || trigger.address];
+					$current_desc_hash = var['current_desc_' || $voted_asset];
+					$is_initial_desc = !$current_desc_hash;
+					if ($is_initial_desc)
+						$current_desc_changed = true;
+					else if ($desc_hash != $current_desc_hash){
+						$new_desc_support = var['desc_support_' || $voted_asset || '_' || $desc_hash] + $balance;
+						$is_removed_support_from_current_desc = ($current_my_desc_hash AND $current_my_desc_hash == $current_desc_hash);
+						$current_desc_support = var['desc_support_' || $voted_asset || '_' || $current_desc_hash] - $is_removed_support_from_current_desc * $balance;
+						$current_desc_changed = ($new_desc_support > $current_desc_support);
+					}
+					if ($current_desc_changed AND !$is_initial_desc){
+						$current_decimals = var['decimals_' || $current_desc_hash];
+						$decimals_changed = ($decimals != $current_decimals);
+					}
+				}`,
+				messages: [
+					{
+						if: "{ ($is_initial_desc OR $decimals_changed) AND $voted_symbol }",
+						app: 'data',
+						payload: {
+							asset: `{$voted_asset}`,
+							name: `{$voted_symbol}`,
+							decimals: `{$decimals}`,
+						}
+					},
+					{
+						app: 'state',
+						state: `{
+							if (!var['desc_' || $desc_hash]){ // a dictionary: description by its hash
+								var['desc_' || $desc_hash] = $description;
+								var['decimals_' || $desc_hash] = $decimals;
+							}
+							if ($current_my_desc_hash) // remove support from the previous description
+								var['desc_support_' || $voted_asset || '_' || $current_my_desc_hash] -= $balance;
+							var['desc_choice_' || $voted_asset || '_' || trigger.address] = $desc_hash;
+							var['desc_support_' || $voted_asset || '_' || $desc_hash] += $balance;
+							if ($current_desc_changed){
+								var['current_desc_' || $voted_asset] = $desc_hash;
+								response['updated_support'] = var['desc_support_' || $voted_asset || '_' || $desc_hash];
+								response['message'] = "Your description is now the current";
+							}
+						}`
+					}
+				]
+			},
+
+			{ // move money from a warmed-up drawer to drawer 0, can be called by anybody
+				if: `{trigger.data.move AND trigger.data.address AND $drawer AND $asset AND $symbol}`,
+				init: `{
+					$drawer_key = trigger.data.address || '_' || $drawer || '_' || $symbol || '_' || $asset;
+					$balance = var[$drawer_key];
+					if (!$balance)
+						bounce("nothing in this drawer");
+					$expiry_ts = var[$drawer_key || '_expiry_ts'];
+					if (!$expiry_ts)
+						bounce("warm-up period has not started yet");
+					if (timestamp < $expiry_ts)
+						bounce("warm-up period has not expired yet");
+					$drawer_0_key = trigger.data.address || '_0_' || $symbol || '_' || $asset;
+				}`,
+				messages: [
+					{
+						app: 'state',
+						state: `{
+							var[$drawer_key] = false;
+							var[$drawer_0_key] += $balance;
+							var[$drawer_key || '_expiry_ts'] = false; // lock the (empty) drawer again
+							response['message'] = "Moved " || $balance || " to drawer 0";
+						}`
+					}
+				]
+			},
+
+			{ // deposit money in favor of a symbol-asset link
+				if: `{$amount >= $min_amount AND $symbol AND $asset }`,
+				init: `{
+					$support = var['support_' || $symbol || '_' || $asset] + $amount;
+
+					$current_asset = var['s2a_' || $symbol];
+					$current_symbol = var['a2s_' || $asset];
+					$current_asset_with_largest_support = var['by_largest_s2a_' || $symbol];
+					$current_symbol_with_largest_support = var['by_largest_a2s_' || $asset];
+					if ($current_asset AND !$current_asset_with_largest_support) // should never happen
+						bounce("no current asset by largest support?");
+					if ($current_symbol AND !$current_symbol_with_largest_support) // should never happen
+						bounce("no current symbol by largest support?");
+
+					// by symbol
+					if (!$current_asset_with_largest_support OR $current_asset_with_largest_support != $asset AND var['support_' || $symbol || '_' || $current_asset_with_largest_support] < $support)
+						$update_by_largest_s2a = true;
+					$symbol_challenge_expiry_ts = var['expiry_ts_' || $symbol];
+					if (!$current_asset){ // the symbol is not taken yet
+						$s2a_ready = true;
+					}
+					else if ($current_asset != $asset AND var['support_' || $symbol || '_' || $current_asset] < $support){
+						if (!$symbol_challenge_expiry_ts) // start a challenging period
+							$schedule_symbol_expiry = true;
+						else if (timestamp > $symbol_challenge_expiry_ts AND var['by_largest_s2a_' || $symbol] == $asset){
+							$s2a_ready = true;
+						}
+					}
+					else if ($current_asset == $asset AND var['by_largest_s2a_' || $symbol] == $asset AND $symbol_challenge_expiry_ts AND timestamp > $symbol_challenge_expiry_ts)
+						$end_symbol_expiry = true;
+					
+					// by asset
+					if (!$current_symbol_with_largest_support OR $current_symbol_with_largest_support != $symbol AND var['support_' || $current_symbol_with_largest_support || '_' || $asset] < $support)
+						$update_by_largest_a2s = true;
+					$asset_challenge_expiry_ts = var['expiry_ts_' || $asset];
+					$current_symbol_support = var['support_' || $current_symbol || '_' || $asset];
+					if (!$current_symbol){
+						$a2s_ready = true;
+					}
+					else if ($current_symbol != $symbol AND $current_symbol_support < $support){
+						$has_largest_support = ($current_symbol_with_largest_support == $symbol);
+						$will_have_largest_support = ($has_largest_support OR $update_by_largest_a2s);
+						$has_overwhelming_support = ($support > $overwhelming_multiplier * $current_symbol_support);
+						$immediate = $will_have_largest_support AND $has_overwhelming_support AND timestamp < var['grace_expiry_ts_' || $asset];
+						if (!$asset_challenge_expiry_ts){ // start a challenging period or apply the change immediately
+							if ($immediate){
+								$a2s_ready = true;
+							}
+							else
+								$schedule_asset_expiry = true;
+						}
+						else if ((timestamp > $asset_challenge_expiry_ts OR $immediate) AND $has_largest_support){
+							$a2s_ready = true;
+						}
+					}
+					else if ($current_symbol == $symbol AND $current_symbol_with_largest_support == $symbol AND $asset_challenge_expiry_ts AND timestamp > $asset_challenge_expiry_ts)
+						$end_asset_expiry = true;
+
+					if ($s2a_ready AND $a2s_ready){
+						if (!$current_asset AND !$current_symbol AND exists($decimals) AND $description){ // new registration
+							$initial_desc_hash = sha256($description || $decimals);
+							$current_decimals = $decimals;
+						}
+						else { // asset already registered
+							$current_desc_hash = var['current_desc_' || $asset];
+							if ($current_desc_hash)
+								$current_decimals = var['decimals_' || $current_desc_hash];
+						}
+					}
+				}`,
+				messages: [
+					{
+						if: `{$s2a_ready AND $a2s_ready AND exists($current_decimals)}`,
+						app: 'data',
+						payload: {
+							asset: `{$asset}`,
+							name: `{$symbol}`,
+							decimals: `{$current_decimals}`,
+						}
+					},
+					{
+						app: 'state',
+						state: `{
+							var['support_' || $symbol || '_' || $asset] = $support;
+
+							// by symbol
+							if ($update_by_largest_s2a)
+								var['by_largest_s2a_' || $symbol] = $asset;
+							if ($schedule_symbol_expiry)
+								var['expiry_ts_' || $symbol] = timestamp + $challenging_period;
+							if ($end_symbol_expiry)
+								var['expiry_ts_' || $symbol] = false;
+
+							// by asset
+							if ($update_by_largest_a2s)
+								var['by_largest_a2s_' || $asset] = $symbol;
+							if ($schedule_asset_expiry)
+								var['expiry_ts_' || $asset] = timestamp + $challenging_period;
+							if ($end_asset_expiry)
+								var['expiry_ts_' || $asset] = false;
+							
+							// only update both links at the same time
+							if ($s2a_ready AND $a2s_ready){
+								// tear old links
+								if ($current_asset)
+									var['a2s_' || $current_asset] = false;
+								if ($current_symbol)
+									var['s2a_' || $current_symbol] = false;
+								// create both new links
+								var['s2a_' || $symbol] = $asset;
+								var['a2s_' || $asset] = $symbol;
+								response[$symbol] = $asset;
+								response[$asset] = $symbol;
+								if ($symbol_challenge_expiry_ts)
+									var['expiry_ts_' || $symbol] = false;
+								if ($asset_challenge_expiry_ts)
+									var['expiry_ts_' || $asset] = false;
+								if (!var['grace_expiry_ts_' || $asset]) // first registration
+									var['grace_expiry_ts_' || $asset] = timestamp + $grace_period;
+							}
+
+							$drawer_key = trigger.address || '_' || $drawer || '_' || $symbol || '_' || $asset;
+							var[$drawer_key] += $amount;
+							response[$drawer_key] = $amount;
+							if ($drawer)
+								var[$drawer_key || '_expiry_ts'] = false; // abort any timers for this drawer
+							var['balance_' || trigger.address || '_' || $asset] += $amount;
+
+							$desc_hash = var['desc_choice_' || $asset || '_' || trigger.address];
+							if ($desc_hash)
+								var['desc_support_' || $asset || '_' || $desc_hash] += $amount;
+
+							if ($initial_desc_hash){
+								if (!var['desc_' || $initial_desc_hash]){
+									var['desc_' || $initial_desc_hash] = $description;
+									var['decimals_' || $initial_desc_hash] = $decimals;
+								}
+								var['desc_choice_' || $asset || '_' || trigger.address] = $initial_desc_hash;
+								var['desc_support_' || $asset || '_' || $initial_desc_hash] = $amount;
+								var['current_desc_' || $asset] = $initial_desc_hash;
+								response['message'] = "Your description is now the current";
+							}
+						}`
+					}
+				]
+			}
+		]
+	}
+}

@@ -6,10 +6,9 @@ const eventBus = require('ocore/event_bus.js');
 const db = require('ocore/db.js');
 const storage = require('ocore/storage.js');
 const objectHash = require('ocore/object_hash.js');
-const datafeeds = require('ocore/data_feeds.js');
 
 var assocFixturesByFeedName = {};
-var assocFeedNameByAaAddress = {};
+var assocFeedNameAndCurrencyByAaAddress = {};
 
 function setAssocFixturesByFeedname(_assocFixturesByFeedName){
 	assocFixturesByFeedName = _assocFixturesByFeedName;
@@ -37,8 +36,6 @@ function refresh(){
 }
 
 function onTransactionsBecameStable(units){
-	console.log('onTransactionsBecameStable')
-	console.log(units)
 	units.forEach(function(unit){
 		storage.readJoint(db, unit, {
 			ifNotFound: function(){
@@ -50,8 +47,6 @@ function onTransactionsBecameStable(units){
 				if (objUnit.authors[0].address != conf.oracle_address)
 					return;
 				objUnit.messages.forEach(function(message){
-					console.log(message);
-
 					if (message.app =='data_feed'){
 						for (var key in message.payload){
 							updateFixtureForResultPosted(key, message.payload[key])
@@ -63,7 +58,7 @@ function onTransactionsBecameStable(units){
 	});
 }
 
-function getAaAddressForFeedname(feed_name){
+function getAaAddressForFeednameAndCurrency(feed_name, currency){
 	var split_feedname = feed_name.split('_');
 	var parameterized_aa = [
 		"autonomous agent",
@@ -74,62 +69,63 @@ function getAaAddressForFeedname(feed_name){
 				"championship": split_feedname[0],
 				"home_team": split_feedname[1],
 				"away_team": split_feedname[2],
-				"fixture_date": split_feedname[3]
+				"fixture_date": split_feedname[3],
+				"reserve_asset": currency
 			}
 		}
 	];
 	var aa_address = objectHash.getChash160(parameterized_aa)
-	assocFeedNameByAaAddress[aa_address] = feed_name;
-	console.log(feed_name + ": " + aa_address);
+	assocFeedNameAndCurrencyByAaAddress[aa_address] = {feed_name, currency};
 	return aa_address;
 }
 
-function getTokenInfo(feed_name){
-	var issuer_address = getAaAddressForFeedname(feed_name);
-
-	wallet_general.addWatchedAddress(issuer_address, function(error){
-		if (error)
-			console.log(error)
-		else
-			console.log(issuer_address + " added as watched address")
-	});
-
-	if (!isIssuerDefined(feed_name) || !areAssetsIssued(feed_name))
-		network.requestFromLightVendor('light/get_aa_state_vars', {
-			address: issuer_address,
-			var_prefix_from: "0",
-			var_prefix_to: "z"
-		}, function(ws, request, objResponse){
-			console.log(objResponse);
-			if (objResponse.error)
-				return;
-			updateFixtureForIssuerDefined(feed_name, issuer_address);
-			updateFixtureAssets(feed_name, objResponse);
-
+function watchTokens(feed_name){
+	conf.currencies.forEach(function(currency){
+		const issuer_address = getAaAddressForFeednameAndCurrency(feed_name, currency);
+		wallet_general.addWatchedAddress(issuer_address, function(error){
+			if (error)
+				console.log(error)
+			else
+				console.log(issuer_address + " added as watched address")
 		});
 
-	if (!isResultPosted(feed_name))
-		network.requestFromLightVendor('light/get_data_feed', {
-			oracles:[conf.oracle_address],
-			feed_name
-		}, function(ws, request, value){
-			if (typeof value == 'string')
-				updateFixtureForResultPosted(feed_name, value);
-		});
+		if (!isIssuerDefined(feed_name, currency) || !areAssetsIssued(feed_name, currency))
+			network.requestFromLightVendor('light/get_aa_state_vars', {
+				address: issuer_address,
+				var_prefix_from: "0",
+				var_prefix_to: "z"
+			}, function(ws, request, objResponse){
+				console.log(objResponse);
+				if (objResponse.error)
+					return;
+				updateFixtureForIssuerDefined(feed_name, currency, issuer_address);
+				updateFixtureAssets(feed_name, objResponse);
+
+			});
+
+		if (!isResultPosted(feed_name))
+			network.requestFromLightVendor('light/get_data_feed', {
+				oracles:[conf.oracle_address],
+				feed_name
+			}, function(ws, request, value){
+				if (typeof value == 'string')
+					updateFixtureForResultPosted(feed_name, value);
+			});
+	})
 }
 
 
 
 
-function updateFixtureForIssuerDefined(feed_name, issuer_address){
-	if (!assocFixturesByFeedName[feed_name])
-		assocFixturesByFeedName[feed_name] = {};
-	assocFixturesByFeedName[feed_name].aa_address = issuer_address;
+function updateFixtureForIssuerDefined(feed_name, currency, issuer_address){
+	createFeedNameEntryIfNotExists(feed_name);
+	if (!assocFixturesByFeedName[feed_name].currencies[currency])
+		assocFixturesByFeedName[feed_name].currencies[currency] = {};	
+	assocFixturesByFeedName[feed_name].currencies[currency].aa_address = issuer_address;
 }
 
 function updateFixtureForResultPosted(feed_name, feed_value){
-	if (!assocFixturesByFeedName[feed_name])
-		assocFixturesByFeedName[feed_name] = {};
+	createFeedNameEntryIfNotExists(feed_name);
 	assocFixturesByFeedName[feed_name].result = feed_value;
 }
 
@@ -137,17 +133,18 @@ function isResultPosted(feed_name){
 	return assocFixturesByFeedName[feed_name] && assocFixturesByFeedName[feed_name].result;
 }
 
-function isIssuerDefined(feed_name){
-	return assocFixturesByFeedName[feed_name] && assocFixturesByFeedName[feed_name].aa_address;
+function isIssuerDefined(feed_name, currency){
+	return assocFixturesByFeedName[feed_name] && assocFixturesByFeedName[feed_name].currencies && assocFixturesByFeedName[feed_name].currencies[currency]
+	 && assocFixturesByFeedName[feed_name].currencies[currency].aa_address;
 }
 
-function areAssetsIssued(feed_name){
-	return assocFixturesByFeedName[feed_name] && assocFixturesByFeedName[feed_name].assets;
+function areAssetsIssued(feed_name, currency){
+	return assocFixturesByFeedName[feed_name] && assocFixturesByFeedName[feed_name].currencies && assocFixturesByFeedName[feed_name].currencies[currency]
+	 && assocFixturesByFeedName[feed_name].currencies[currency].assets;
 }
 
 function updateFixtureAssets(feed_name, assocVars){
-	if (!assocFixturesByFeedName[feed_name])
-		assocFixturesByFeedName[feed_name] = {};
+	createFeedNameEntryIfNotExists(feed_name);
 	if (assocVars['hometeam']){
 		assocFixturesByFeedName[feed_name].assets = {
 			home: assocVars['hometeam'],
@@ -158,17 +155,25 @@ function updateFixtureAssets(feed_name, assocVars){
 	}
 }
 
+function createFeedNameEntryIfNotExists(feed_name){
+	if (!assocFixturesByFeedName[feed_name])
+		assocFixturesByFeedName[feed_name] = {};
+	if (!assocFixturesByFeedName[feed_name].currencies)
+		assocFixturesByFeedName[feed_name].currencies = {};
+}
+
 eventBus.on("message_for_light", function(ws, subject, body){
 
 	if (subject == 'light/aa_definition'){
 
 		body.messages.forEach(function(message){
 			if (message.app == "definition"){
-				var template = message.payload.definition[1];
-				var params = template.params;
+				const template = message.payload.definition[1];
+				const params = template.params;
 				if (template.base_aa == conf.issuer_base_aa){
-					var templated_feed_name = params.championship + '_' + params.home_team + '_' + params.away_team + '_' + params.fixture_date; 
-					updateFixtureForIssuerDefined(templated_feed_name, getAaAddressForFeedname(templated_feed_name));
+					const templated_feed_name = params.championship + '_' + params.home_team + '_' + params.away_team + '_' + params.fixture_date; 
+					const currency = params.reserve_asset;
+					updateFixtureForIssuerDefined(templated_feed_name, currency, getAaAddressForFeednameAndCurrency(templated_feed_name, currency));
 				}
 			}
 		});
@@ -178,7 +183,7 @@ eventBus.on("message_for_light", function(ws, subject, body){
 
 
 eventBus.on('aa_response', function(objAaResponse){
-	if (!assocFeedNameByAaAddress[objAaResponse.aa_address])
+	if (!assocFeedNameAndCurrencyByAaAddress[objAaResponse.aa_address])
 		return console.log("feedname not in calendar anymore");
 	network.requestFromLightVendor('light/get_aa_state_vars', {
 		address: objAaResponse.aa_address,
@@ -187,12 +192,12 @@ eventBus.on('aa_response', function(objAaResponse){
 	}, function(ws, request, objStateVarsResponse){
 		if (objStateVarsResponse.error)
 			return;
-		updateFixtureForIssuerDefined(assocFeedNameByAaAddress[objAaResponse.aa_address], objAaResponse.aa_address);
-		updateFixtureAssets(assocFeedNameByAaAddress[objAaResponse.aa_address], objStateVarsResponse);
+		updateFixtureForIssuerDefined(assocFeedNameAndCurrencyByAaAddress[objAaResponse.aa_address].feed_name, assocFeedNameAndCurrencyByAaAddress[objAaResponse.aa_address].currency, objAaResponse.aa_address);
+		updateFixtureAssets(assocFeedNameAndCurrencyByAaAddress[objAaResponse.aa_address].feed_name, assocFeedNameAndCurrencyByAaAddress[objAaResponse.aa_address].currency, objStateVarsResponse);
 	});
 });
 
 
 
-exports.getTokenInfo = getTokenInfo;
+exports.watchTokens = watchTokens;
 exports.setAssocFixturesByFeedname = setAssocFixturesByFeedname;

@@ -4,7 +4,8 @@
 		"doc_url": "https://raw.githubusercontent.com/byteball/sports-betting/master/AAs/asset-issuer/{{aa_address}}.json",
 		"init": `{
 			$timeout = 5;
-			$registry_address = "XVIFA4GZO7IHAUBFU47GSWMBZYOY56ZD";
+			$sl_tokens_registry_address = "XVIFA4GZO7IHAUBFU47GSWMBZYOY56ZD";
+			$dec_tokens_registry_address = "O6H6ZIFI57X3PLTYHOCVYPP5A553CYFQ";
 			if (typeof(params.championship) != 'string')
 				bounce("championship parameter must be a string");
 			if (typeof(params.home_team) != 'string')
@@ -21,38 +22,59 @@
 				bounce("fixture_date parameter is not a valid date");
 			if (!is_valid_address(params.oracle))
 				bounce("oracle parameter is not a valid address");
-			if (array_length(keys(params)) != 5)
+			if (!asset[params.reserve_asset].exists)
+				bounce("reserve asset doesn't exist");
+			if (array_length(keys(params)) != 6)
 				bounce("foreign parameter(s) in AA definition"); // ensure there can be only one address for this set of parameters
-			$base_amount_received = trigger.output[[asset=base]];
+			$reserve_asset = params.reserve_asset;
+			if ($reserve_asset == 'base'){
+				$reserve_amount_received = trigger.output[[asset=base]] - 10000;
+			} else {
+				if (trigger.output[[asset=base]] > 20000)
+					bounce("base amount exceeds fees");
+				$reserve_amount_received = trigger.output[[asset=$reserve_asset]];
+			}
 		}`,
 		"messages": {
 			"cases": 
 			[
 				{
 					"if": `{
-						$base_amount_received > 10000 OR trigger.address == $registry_address
+						$reserve_amount_received > 0 OR trigger.address == $sl_tokens_registry_address
 					}`,
 					"init": `{
-						if (trigger.data.asset_step AND trigger.address != $registry_address)
+						if (trigger.data.asset_step AND trigger.address != $sl_tokens_registry_address)
 							bounce("only registry can increment asset step");
-						if (var["canceled"] AND trigger.address != $registry_address){ // the assets are already defined, we just have to issue them
+						if (var["canceled"] AND trigger.address != $sl_tokens_registry_address){ // the assets are already defined, we just have to issue them
 							$recipient_address = trigger.address;
-							$asset_amount = $base_amount_received - 10000;
+							$asset_amount = $reserve_amount_received;
 						} else {
 							$symbol_left_part = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.fixture_date;
-							if (trigger.address != $registry_address){ // if triggered by user we are at first step of asset definition
+							if ($reserve_asset == 'base'){
+								$currency_symbol = "GBYTE";
+							} else {
+								$currency_symbol = var[$dec_tokens_registry_address]['a2s_' || $reserve_asset];
+								if (!$currency_symbol)
+									bounce("no symbol for reserve asset");
+								$description = var[$dec_tokens_registry_address]['current_desc_' || $reserve_asset];
+								if (!$description)
+									$decimals = 0;
+								else
+									$decimals = var[$dec_tokens_registry_address]['decimals_' || $description];
+							}
+							if (trigger.address != $sl_tokens_registry_address){ // if triggered by user we are at first step of asset definition
 								$asset_type = "hometeam";
-								$asset_symbol = $symbol_left_part || '-' || params.home_team;
+								$asset_symbol = $symbol_left_part || '-' || params.home_team || '-' || $currency_symbol;
 								$next_asset_step = 1;
 							} else if (trigger.data.asset_step == 1){
 								$asset_type = "awayteam";
-								$asset_symbol = $symbol_left_part || '-' || params.away_team;
+								$asset_symbol = $symbol_left_part || '-' || params.away_team || '-' || $currency_symbol;
 							} else if (trigger.data.asset_step == 2){
 								$asset_type = "draw";
-								$asset_symbol = $symbol_left_part || '-DRAW';
+								$asset_symbol = $symbol_left_part || '-DRAW' || '-' || $currency_symbol;
 							} else if (trigger.data.asset_step == 3){
 								$asset_type = "canceled";
-								$asset_symbol = $symbol_left_part || '-CANCELED';
+								$asset_symbol = $symbol_left_part || '-CANCELED' || '-' || $currency_symbol;
 							} else if (trigger.data.asset_step == 4){
 								$recipient_address = trigger.initial_address;
 								$asset_amount = var['amount_to_pay'];
@@ -136,8 +158,8 @@
 								"asset": "base",
 								"outputs": [
 										{
-											"address": "{$registry_address}",
-											"amount": 1500
+											"address": "{$sl_tokens_registry_address}",
+											"amount": 1600
 										}
 									]
 								}
@@ -148,6 +170,7 @@
 								"payload": {
 									"next_asset_step": "{$next_asset_step}",
 									"asset_symbol":"{$asset_symbol}",
+									"decimals" :"{$decimals}",
 									"oracle":"{params.oracle}"
 								}
 							},
@@ -157,21 +180,30 @@
 								"state": "{
 									var[$asset_type] = response_unit;
 									if ($next_asset_step == 1){
-										var['amount_to_pay'] = $base_amount_received - 10000;
+										var['amount_to_pay'] = $reserve_amount_received;
 									}
 								}"
 							}
 						]
 				},
 				{
-					"if": "{trigger.output[[asset!=base]] > 1000 AND trigger.output[[asset!=base]].asset != 'ambiguous'}",
+					"if": "{$reserve_amount_received == 0}",
+					
 					"init":"{
-						$asset = trigger.output[[asset!=base]].asset;
-						if ($asset != var['hometeam'] AND $asset != var['awayteam']
-							AND $asset != var['draw'] AND $asset != var['canceled'])
-							bounce("foreign asset");
-
-						$amount = trigger.output[[asset!=base]];
+						if (trigger.output[[asset=var['hometeam']]] > 0)
+							$asset = var['hometeam'];
+						else if (trigger.output[[asset=var['awayteam']]] > 0)
+							$asset = var['awayteam'];
+						else if (trigger.output[[asset=var['draw']]] > 0)
+							$asset = var['draw'];
+						else if (trigger.output[[asset=var['canceled']]] > 0)
+							$asset = var['canceled'];
+						else
+							bounce("no betting asset");
+						if ($reserve_asset == 'base')
+							$amount = trigger.output[[asset=$asset]] - 1000;
+						else
+							$amount = trigger.output[[asset=$asset]];
 						$feedname = params.championship || '_' || params.home_team || '_' || params.away_team || '_' || params.fixture_date;
 						$datafeed_value = data_feed[[oracles=params.oracle, feed_name=$feedname, ifnone='_none']];
 						if ($asset == var['hometeam'] AND $datafeed_value != params.home_team)
@@ -192,11 +224,11 @@
 						{
 							"app": "payment",
 							"payload": {
-									"asset": "base",
+									"asset": "{$reserve_asset}",
 									"outputs": [
 											{
 												"address": "{trigger.address}",
-												"amount": "{$amount - 1000}"
+												"amount": "{$amount}"
 											}
 									]
 							}

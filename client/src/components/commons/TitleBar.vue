@@ -1,6 +1,6 @@
 <template>
 	<div class="columns">
-		<div class="column">
+		<div class="column is-three-quarters">
 			<a href="/"><h2 class="title is-2 p-05">{{conf.website_name}}</h2></a>
 		</div>
 			<div class="column">
