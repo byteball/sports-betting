@@ -99,7 +99,7 @@ function watchTokens(feed_name){
 				if (objResponse.error)
 					return;
 				updateFixtureForIssuerDefined(feed_name, currency, issuer_address);
-				updateFixtureAssets(feed_name, objResponse);
+				updateFixtureAssets(feed_name, currency, objResponse);
 
 			});
 
@@ -143,10 +143,10 @@ function areAssetsIssued(feed_name, currency){
 	 && assocFixturesByFeedName[feed_name].currencies[currency].assets;
 }
 
-function updateFixtureAssets(feed_name, assocVars){
+function updateFixtureAssets(feed_name, currency, assocVars){
 	createFeedNameEntryIfNotExists(feed_name);
 	if (assocVars['hometeam']){
-		assocFixturesByFeedName[feed_name].assets = {
+		assocFixturesByFeedName[feed_name].currencies[currency].assets = {
 			home: assocVars['hometeam'],
 			away: assocVars['awayteam'],
 			draw: assocVars['draw'],
