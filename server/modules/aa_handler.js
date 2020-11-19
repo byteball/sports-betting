@@ -145,6 +145,8 @@ function areAssetsIssued(feed_name, currency){
 
 function updateFixtureAssets(feed_name, currency, assocVars){
 	createFeedNameEntryIfNotExists(feed_name);
+	if (!assocFixturesByFeedName[feed_name].currencies[currency])
+		assocFixturesByFeedName[feed_name].currencies[currency] = {};
 	if (assocVars['hometeam']){
 		assocFixturesByFeedName[feed_name].currencies[currency].assets = {
 			home: assocVars['hometeam'],
