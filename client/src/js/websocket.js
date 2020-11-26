@@ -195,7 +195,7 @@ class WsEmitter extends EventEmitter {
 	}
 
 	async subscribeOrderbook(baseToken, quoteToken, pairName) {
-
+		console.log(baseToken + ' '+ quoteToken + ' ' +pairName);
 		this.store.commit('addPair', {pairName , baseToken, quoteToken});
 	
 		const message = {

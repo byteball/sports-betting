@@ -21,7 +21,7 @@ export default {
 	},
 	created(){
 		ws.setStore(this.$store);
-		this.$store.dispatch('getCurrencies');
+		this.$store.dispatch('fetchCurrencies');
 	}
 }
 </script>

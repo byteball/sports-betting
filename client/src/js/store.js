@@ -40,7 +40,7 @@ export default new Vuex.Store({
 
 	},
 	actions: {
-		getCurrencies(context){
+		fetchCurrencies(context){
 			axios.get('/api/currencies').then((response) => {
 				if (response.status == 200){
 					context.commit('setCurrencies', response.data);

@@ -55,7 +55,7 @@
 							{{bestHomeOdds}}
 						</th>
 						<th>
-							<a :href="odex_base_url +'trade/' + fixture.home_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
+							<a :href="odex_base_url +'trade/' + home_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
 								<b-icon class="ml-05" icon="open-in-new"/>
 							</a>
 						</th>
@@ -70,7 +70,7 @@
 							{{bestDrawOdds}}
 						</th>
 						<th>
-							<a :href="odex_base_url +'trade/' + fixture.draw_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
+							<a :href="odex_base_url +'trade/' + draw_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
 								<b-icon class="ml-05" icon="open-in-new"/>
 							</a>
 						</th>
@@ -85,7 +85,7 @@
 							{{bestAwayOdds}}
 						</th>
 						<th>
-							<a :href="odex_base_url +'trade/' + fixture.away_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
+							<a :href="odex_base_url +'trade/' + away_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
 								<b-icon class="ml-05" icon="open-in-new"/>
 							</a>
 						</th>
@@ -100,7 +100,7 @@
 							{{bestCanceledOdds}}
 						</th>
 						<th>
-							<a :href="odex_base_url +'trade/' + fixture.canceled_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
+							<a :href="odex_base_url +'trade/' + canceled_asset_symbol  + '/' + $store.state.selectedOperatingSymbol" target="_blank">
 								<b-icon class="ml-05" icon="open-in-new"/>
 							</a>
 						</th>
@@ -135,10 +135,6 @@ export default {
 		return {
 			datafeed: '',
 			odex_base_url: odex_base_url,
-			home_asset_symbol: '',
-			away_asset_symbol: '',
-			draw_asset_symbol: '',
-			canceled_asset_symbol: '',
 		}
 	},
 
@@ -152,16 +148,16 @@ export default {
 			return "tile is-child notification " + this.type;
 		},
 		bestHomeOdds: function(){
-			return this.getBestOddsForPair(this.fixture.home_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
+			return this.getBestOddsForPair(this.home_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
 		},
 		bestAwayOdds: function(){
-			return this.getBestOddsForPair(this.fixture.away_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
+			return this.getBestOddsForPair(this.away_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
 		},
 		bestDrawOdds: function(){
-			return this.getBestOddsForPair(this.fixture.draw_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
+			return this.getBestOddsForPair(this.draw_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
 		},
 		bestCanceledOdds: function(){
-			return this.getBestOddsForPair(this.fixture.canceled_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
+			return this.getBestOddsForPair(this.canceled_asset_symbol  + '/' + this.$store.state.selectedOperatingSymbol);
 		},
 		issuer_creation_link: function(){
 			const reserve_asset = this.$store.state.currencies[this.$store.state.selectedOperatingSymbol].asset;
@@ -181,11 +177,26 @@ export default {
 			return protocol+":data?app=definition&definition="+encodeURIComponent(definition);
 		},
 		hasAssetsIssued: function(){
-			const reserve_asset = this.$store.getters.selectedOperatingAsset;
-			if (reserve_asset && this.fixture.currencies && this.fixture.currencies[reserve_asset])
+			const operating_asset = this.$store.getters.selectedOperatingAsset;
+			if (operating_asset && this.fixture.currencies && this.fixture.currencies[operating_asset])
 				return true;
 			return false;
 		},
+		home_asset_symbol: function(){
+			return this.feedName + '-' + this.fixture.feedHomeTeamName + '-' + this.$store.state.selectedOperatingSymbol;
+		},
+		away_asset_symbol: function(){
+			return this.feedName + '-' + this.fixture.feedAwayTeamName + '-' + this.$store.state.selectedOperatingSymbol;
+		},
+		draw_asset_symbol: function(){
+			return this.feedName + '-DRAW-' + this.$store.state.selectedOperatingSymbol;
+		},
+		canceled_asset_symbol: function(){
+			return this.feedName + '-CANCELED-' + this.$store.state.selectedOperatingSymbol;
+		},
+
+
+
 	},
 	watch:{
 		fixture: function(){
@@ -198,31 +209,27 @@ export default {
 	methods: {
 
 		init: function(){
-			const reserve_asset = this.$store.getters.selectedOperatingAsset;
-			const feedName = this.fixture.championship + '_' + this.fixture.feedHomeTeamName + '_' + this.fixture.feedAwayTeamName + '_' + this.fixture.localDay;
-			this.fixture.home_asset_symbol = feedName + '-' + this.fixture.feedHomeTeamName + '-' + this.$store.state.selectedOperatingSymbol;
-			this.fixture.away_asset_symbol = feedName + '-' + this.fixture.feedAwayTeamName+ '-' + this.$store.state.selectedOperatingSymbol;
-			this.fixture.draw_asset_symbol = feedName + '-DRAW'+ '-' + this.$store.state.selectedOperatingSymbol;
-			this.fixture.canceled_asset_symbol = feedName + '-CANCELED'+ '-' + this.$store.state.selectedOperatingSymbol;
+			const operating_asset = this.$store.getters.selectedOperatingAsset;
+			this.feedName = this.fixture.championship + '_' + this.fixture.feedHomeTeamName + '_' + this.fixture.feedAwayTeamName + '_' + this.fixture.localDay;
 
-			if(this.fixture.currencies && this.fixture.currencies[reserve_asset] && this.fixture.currencies[reserve_asset].assets){
-				function subscribe(result){
-					const ws = require('../js/websocket.js');
-					ws.subscribeOrderbook(this.fixture.assets.currencies[reserve_asset][result], 
-					this.$store.getters.selectedOperatingAsset, 
-					this.fixture[result+'_asset_symbol'] + this.$store.state.selectedOperatingSymbol);
+			for (var key in this.$store.state.currencies){
+				const asset = this.$store.state.currencies[key].asset;
+				if(this.fixture.currencies && this.fixture.currencies[asset] && this.fixture.currencies[asset].assets){
+					this.subscribeOdds(asset,'home');
+					this.subscribeOdds(asset,'away');
+					this.subscribeOdds(asset,'draw');
+					this.subscribeOdds(asset,'canceled');
 				}
-
-				if (!this.$store.state.subscribed_assets[this.fixture.currencies[reserve_asset].assets.home])
-					subscribe('home');
-				if (!this.$store.state.subscribed_assets[this.fixture.currencies[reserve_asset].assets.away])
-					subscribe('away');
-				if (!this.$store.state.subscribed_assets[this.fixture.currencies[reserve_asset].assets.draw])
-					subscribe('draw');
-				if (!this.$store.state.subscribed_assets[this.fixture.currencies[reserve_asset].assets.canceled])
-					subscribe('canceled');
 			}
+		},
+		subscribeOdds(asset, outcome){
+			if (this.$store.state.subscribed_assets[this.fixture.currencies[asset].assets[outcome]])
+				return console.log(asset + " already suscribed");
 
+			const ws = require('../js/websocket.js');
+			ws.subscribeOrderbook(this.fixture.currencies[asset].assets[outcome],
+			this.$store.getters.selectedOperatingAsset, 
+			this[outcome + '_asset_symbol'] +  '/' + this.$store.state.selectedOperatingSymbol);
 		},
 
 		getBestOddsForPair: function(pair){
