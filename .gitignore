@@ -37,3 +37,5 @@ server/.vscode
 AAs/testdata
 AAs/package-lock.json
 AAs/node_modules
+
+yarn.lock
