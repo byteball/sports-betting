@@ -60,7 +60,7 @@ location /api/ {
 		"nb_fixtures": 40,
 		"nb_incoming_fixtures": 0
 	}, {
-		"championship": "L1",
+		"championship": "FL1",
 		"nb_fixtures": 0,
 		"nb_incoming_fixtures": 0
 	}, {
@@ -92,7 +92,7 @@ location /api/ {
 	"nb_fixtures": 40,
 	"nb_incoming_fixtures": 0
 }, {
-	"championship": "L1",
+	"championship": "FL1",
 	"nb_fixtures": 0,
 	"nb_incoming_fixtures": 0
 }, {
